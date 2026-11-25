@@ -28,3 +28,28 @@ export async function setAppName(name) {
     });
   return value;
 }
+
+export async function isRegistrationAllowed() {
+  try {
+    const [row] = await db
+      .select({ value: appSettings.value })
+      .from(appSettings)
+      .where(eq(appSettings.key, 'allow_registration'))
+      .limit(1);
+    return row ? row.value !== 'false' : true; // bawaan: aktif
+  } catch {
+    return true;
+  }
+}
+
+export async function setRegistrationAllowed(allowed) {
+  const value = allowed ? 'true' : 'false';
+  await db
+    .insert(appSettings)
+    .values({ key: 'allow_registration', value })
+    .onConflictDoUpdate({
+      target: appSettings.key,
+      set: { value, updatedAt: new Date() },
+    });
+  return allowed;
+}

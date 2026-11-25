@@ -16,6 +16,7 @@ const appName = await getAppName();
       <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <a href="/dashboard" class="font-bold">{appName}</a>
         <nav class="flex items-center gap-4 text-sm">
+          <a href="/dashboard/account" class="underline">Akun</a>
           {user?.role === 'admin' && <a href="/admin" class="underline">Admin</a>}
           <span class="hidden sm:inline text-gray-600">{user?.name}</span>
           <form method="POST" action="/api/logout">

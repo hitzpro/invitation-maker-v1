@@ -6,7 +6,7 @@ import { invitations } from '../db/schema.js';
 export const RESERVED_SLUGS = new Set([
   'admin', 'api', 'dashboard', 'login', 'logout', 'register', 'setup', 'og',
   '403', '404', 'uploads', '_astro', 'assets', 'static', 'public',
-  'favicon.ico', 'robots.txt', 'sitemap.xml','audio',
+  'favicon.ico', 'robots.txt', 'sitemap.xml','audio', 'healthz',
 ]);
 
 // huruf kecil/angka, dipisah tanda hubung tunggal

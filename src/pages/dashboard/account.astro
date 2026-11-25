@@ -1,0 +1,71 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/index.js';
+import { sessions, users } from '../../db/schema.js';
+import { hashPassword, verifyPassword } from '../../lib/password.js';
+import { createSession, setSessionCookie } from '../../lib/session.js';
+
+const user = Astro.locals.user;
+let error = '';
+const saved = Astro.url.searchParams.get('saved') === '1';
+
+const schema = z.object({
+  currentPassword: z.string().min(1, 'Password lama wajib diisi'),
+  newPassword: z.string().min(8, 'Password baru minimal 8 karakter').max(128, 'Maksimal 128 karakter'),
+  confirmPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: 'Konfirmasi password baru tidak sama',
+  path: ['confirmPassword'],
+});
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const parsed = schema.safeParse({
+    currentPassword: String(form.get('currentPassword') ?? ''),
+    newPassword: String(form.get('newPassword') ?? ''),
+    confirmPassword: String(form.get('confirmPassword') ?? ''),
+  });
+
+  if (!parsed.success) {
+    error = parsed.error.issues[0].message;
+  } else {
+    const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, user.id)).limit(1);
+    const ok = row && (await verifyPassword(row.passwordHash, parsed.data.currentPassword));
+    if (!ok) {
+      error = 'Password lama salah';
+    } else {
+      await db.update(users).set({ passwordHash: await hashPassword(parsed.data.newPassword) }).where(eq(users.id, user.id));
+      // Cabut semua sesi lama lalu terbitkan sesi baru agar perangkat lain keluar
+      await db.delete(sessions).where(eq(sessions.userId, user.id));
+      const { token, expiresAt } = await createSession(user.id);
+      setSessionCookie(Astro.cookies, token, expiresAt);
+      return Astro.redirect('/dashboard/account?saved=1');
+    }
+  }
+}
+---
+<AppLayout title="Akun & Keamanan">
+  <a href="/dashboard" class="text-sm underline">← Kembali ke dashboard</a>
+  <h1 class="mt-2 text-2xl font-bold">Ubah Password</h1>
+
+  <form method="POST" class="mt-6 max-w-md space-y-4 rounded-lg border bg-white p-6">
+    {saved && <p class="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">Password berhasil diperbarui.</p>}
+    {error && <p class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+    <div>
+      <label for="currentPassword" class="block text-sm font-medium">Password lama</label>
+      <input id="currentPassword" name="currentPassword" type="password" required class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label for="newPassword" class="block text-sm font-medium">Password baru</label>
+      <input id="newPassword" name="newPassword" type="password" required minlength="8" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label for="confirmPassword" class="block text-sm font-medium">Ulangi password baru</label>
+      <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+    </div>
+    <button class="rounded bg-black px-4 py-2 text-sm text-white">Simpan Password</button>
+  </form>
+</AppLayout>

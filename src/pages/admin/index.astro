@@ -1,11 +1,13 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
+import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { count, desc, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { guestMessages, invitations, rsvps, sessions, users } from '../../db/schema.js';
 import { deleteInvitationAsAdmin, isUuid } from '../../lib/invitations.js';
-import { getAppName, setAppName } from '../../lib/settings.js';
+import { hashPassword } from '../../lib/password.js';
+import { getAppName, setAppName, isRegistrationAllowed, setRegistrationAllowed } from '../../lib/settings.js';
 
 const admin = Astro.locals.user;
 let notice = '';
@@ -22,7 +24,18 @@ if (Astro.request.method === 'POST') {
       settingsError = parsed.error.issues[0].message;
     } else {
       await setAppName(parsed.data);
+      await setRegistrationAllowed(form.get('allowRegistration') === 'on');
       return Astro.redirect('/admin?saved=settings');
+    }
+  }
+
+  if (action === 'reset-password') {
+    const targetId = String(form.get('userId') ?? '');
+    if (isUuid(targetId) && targetId !== admin.id) {
+      const tempPass = randomBytes(6).toString('base64url'); // 8 karakter acak
+      await db.update(users).set({ passwordHash: await hashPassword(tempPass) }).where(eq(users.id, targetId));
+      await db.delete(sessions).where(eq(sessions.userId, targetId));
+      notice = `Password sementara user berhasil direset menjadi: ${tempPass} (salin sekarang, hanya tampil sekali).`;
     }
   }
 
@@ -59,7 +72,7 @@ if (Astro.request.method === 'POST') {
 }
 
 const savedMap = {
-  settings: 'Nama aplikasi berhasil disimpan.',
+  settings: 'Pengaturan aplikasi berhasil disimpan.',
   user: 'Status pengguna diperbarui.',
   invitation: 'Status undangan diperbarui.',
   deleted: 'Undangan dan seluruh file gambar/lagu berhasil dihapus.',
@@ -69,12 +82,14 @@ if (Object.hasOwn(savedMap, savedKey)) notice = savedMap[savedKey];
 
 const [
   appName,
+  allowRegistration,
   [{ value: rsvpCount }],
   [{ value: wishCount }],
   userList,
   invitationList,
 ] = await Promise.all([
   getAppName(),
+  isRegistrationAllowed(),
   db.select({ value: count() }).from(rsvps),
   db.select({ value: count() }).from(guestMessages),
   db.select({
@@ -143,6 +158,10 @@ const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'A
           class="mt-1 w-full rounded border px-3 py-2 text-sm" />
       </div>
       <button class="rounded bg-black px-4 py-2 text-sm text-white">Simpan</button>
+      <label class="flex w-full items-center gap-2 text-sm">
+        <input type="checkbox" name="allowRegistration" checked={allowRegistration} />
+        Izinkan pendaftaran pengguna baru (/register)
+      </label>
     </form>
     {settingsError && <p class="mt-2 text-sm text-red-600">{settingsError}</p>}
   </section>
@@ -161,13 +180,20 @@ const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'A
             <p class="text-xs text-gray-500">{u.email} · daftar {fmt.format(u.createdAt)}</p>
           </div>
           {u.id !== admin.id ? (
-            <form method="POST">
-              <input type="hidden" name="_action" value="toggle-user" />
-              <input type="hidden" name="userId" value={u.id} />
-              <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
-                {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-              </button>
-            </form>
+            <div class="flex items-center gap-2">
+              <form method="POST">
+                <input type="hidden" name="_action" value="toggle-user" />
+                <input type="hidden" name="userId" value={u.id} />
+                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
+                  {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                </button>
+              </form>
+              <form method="POST" onsubmit="return confirm('Reset password pengguna ini dan keluarkan seluruh sesinya?')">
+                <input type="hidden" name="_action" value="reset-password" />
+                <input type="hidden" name="userId" value={u.id} />
+                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">Reset password</button>
+              </form>
+            </div>
           ) : (
             <span class="text-xs text-gray-400">Akun Anda</span>
           )}

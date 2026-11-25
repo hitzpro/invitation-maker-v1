@@ -5,26 +5,35 @@ import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { verifyPassword } from '../lib/password.js';
 import { createSession, setSessionCookie } from '../lib/session.js';
+import { clientIp, isRateLimited } from '../lib/guest.js';
+import { isRegistrationAllowed } from '../lib/settings.js';
 
 if (Astro.locals.user) return Astro.redirect('/dashboard');
 
 let error = '';
 let email = '';
+const canRegister = await isRegistrationAllowed();
 
 if (Astro.request.method === 'POST') {
-  const form = await Astro.request.formData();
+const form = await Astro.request.formData();
   email = String(form.get('email') ?? '').trim().toLowerCase();
   const password = String(form.get('password') ?? '');
+  const ip = clientIp(Astro.request, Astro.clientAddress);
 
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  const valid = user && user.isActive && (await verifyPassword(user.passwordHash, password));
-
-  if (!valid) {
-    error = 'Email atau password salah';
+  if (isRateLimited(`login:${ip}`, 10, 15 * 60 * 1000)) {
+    Astro.response.status = 429;
+    error = 'Terlalu banyak percobaan masuk. Coba lagi 15 menit lagi.';
   } else {
-    const { token, expiresAt } = await createSession(user.id);
-    setSessionCookie(Astro.cookies, token, expiresAt);
-    return Astro.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const valid = user && user.isActive && (await verifyPassword(user.passwordHash, password));
+
+    if (!valid) {
+      error = 'Email atau password salah';
+    } else {
+      const { token, expiresAt } = await createSession(user.id);
+      setSessionCookie(Astro.cookies, token, expiresAt);
+      return Astro.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
+    }
   }
 }
 ---
@@ -50,7 +59,7 @@ if (Astro.request.method === 'POST') {
       </div>
 
       <button class="w-full bg-black text-white rounded py-2">Masuk</button>
-      <p class="text-sm text-center">Belum punya akun? <a href="/register" class="underline">Daftar</a></p>
+      {canRegister && <p class="text-sm text-center">Belum punya akun? <a href="/register" class="underline">Daftar</a></p>}
     </form>
   </body>
 </html>

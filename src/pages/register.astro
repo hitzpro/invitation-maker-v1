@@ -6,8 +6,14 @@ import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { hashPassword } from '../lib/password.js';
 import { createSession, setSessionCookie } from '../lib/session.js';
+import { isRegistrationAllowed } from '../lib/settings.js';
 
 if (Astro.locals.user) return Astro.redirect('/dashboard');
+
+const registrationOpen = await isRegistrationAllowed();
+if (!registrationOpen && Astro.request.method === 'POST') {
+  return new Response('Pendaftaran sedang ditutup', { status: 403 });
+}
 
 const schema = z.object({
   name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
@@ -58,29 +64,37 @@ if (Astro.request.method === 'POST') {
     <title>Daftar</title>
   </head>
   <body class="min-h-screen grid place-items-center bg-gray-50 p-4">
-    <form method="POST" class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4">
-      <h1 class="text-2xl font-bold">Daftar</h1>
-
-      <div>
-        <label class="block text-sm font-medium" for="name">Nama</label>
-        <input id="name" name="name" value={values.name} required class="mt-1 w-full border rounded px-3 py-2" />
-        {errors.name && <p class="text-sm text-red-600 mt-1">{errors.name[0]}</p>}
+    {!registrationOpen ? (
+      <div class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-3 text-center">
+        <h1 class="text-xl font-bold">Pendaftaran Ditutup</h1>
+        <p class="text-sm text-gray-600">Registrasi akun baru sedang dinonaktifkan oleh administrator.</p>
+        <a href="/login" class="inline-block text-sm underline">Kembali ke halaman masuk</a>
       </div>
+    ) : (
+      <form method="POST" class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4">
+        <h1 class="text-2xl font-bold">Daftar</h1>
 
-      <div>
-        <label class="block text-sm font-medium" for="email">Email</label>
-        <input id="email" name="email" type="email" value={values.email} required class="mt-1 w-full border rounded px-3 py-2" />
-        {errors.email && <p class="text-sm text-red-600 mt-1">{errors.email[0]}</p>}
-      </div>
+        <div>
+          <label class="block text-sm font-medium" for="name">Nama</label>
+          <input id="name" name="name" value={values.name} required class="mt-1 w-full border rounded px-3 py-2" />
+          {errors.name && <p class="text-sm text-red-600 mt-1">{errors.name[0]}</p>}
+        </div>
 
-      <div>
-        <label class="block text-sm font-medium" for="password">Password</label>
-        <input id="password" name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" />
-        {errors.password && <p class="text-sm text-red-600 mt-1">{errors.password[0]}</p>}
-      </div>
+        <div>
+          <label class="block text-sm font-medium" for="email">Email</label>
+          <input id="email" name="email" type="email" value={values.email} required class="mt-1 w-full border rounded px-3 py-2" />
+          {errors.email && <p class="text-sm text-red-600 mt-1">{errors.email[0]}</p>}
+        </div>
 
-      <button class="w-full bg-black text-white rounded py-2">Daftar</button>
-      <p class="text-sm text-center">Sudah punya akun? <a href="/login" class="underline">Masuk</a></p>
-    </form>
+        <div>
+          <label class="block text-sm font-medium" for="password">Password</label>
+          <input id="password" name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" />
+          {errors.password && <p class="text-sm text-red-600 mt-1">{errors.password[0]}</p>}
+        </div>
+
+        <button class="w-full bg-black text-white rounded py-2">Daftar</button>
+        <p class="text-sm text-center">Sudah punya akun? <a href="/login" class="underline">Masuk</a></p>
+      </form>
+    )}
   </body>
 </html>
