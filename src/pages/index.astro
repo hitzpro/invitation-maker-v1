@@ -1,9 +1,221 @@
 ---
 import '../styles/global.css';
+import '@fontsource-variable/inter';
+import '@fontsource/great-vibes/400.css';
+import { getAppName } from '../lib/settings.js';
+
+const user = Astro.locals.user;
+const appName = await getAppName();
+
+const features = [
+  {
+    title: 'Mode Otomatis & Editor Visual',
+    desc: 'Buat undangan cepat lewat formulir langkah demi langkah, atau atur warna tema, font, pola latar, ornamen SVG, dan urutan section dengan preview langsung serta Undo/Redo.',
+  },
+  {
+    title: 'Tautan Personal & Sebar WhatsApp',
+    desc: 'Kelola daftar tamu untuk menghasilkan tautan personal (?to=Nama), kirim pesan WhatsApp dari template siap pakai, dan pantau status kirim tiap tamu.',
+  },
+  {
+    title: 'RSVP, Ucapan Tamu & Ekspor CSV',
+    desc: 'Terima konfirmasi kehadiran beserta jumlah tamu dan doa ucapan secara langsung, lengkap dengan proteksi anti-spam, ringkasan jumlah tamu, dan ekspor CSV.',
+  },
+  {
+    title: 'Amplop Digital (Rekening & QRIS)',
+    desc: 'Tampilkan daftar rekening bank atau e-wallet dengan tombol salin nomor satu klik serta unggah kode QRIS agar tamu dapat memberi tanda kasih dengan mudah.',
+  },
+  {
+    title: 'Galeri Interaktif, Slideshow & Musik',
+    desc: 'Dukung cover slideshow multi-foto, viewer zoom di galeri, atur posisi fokus foto mempelai dalam bingkai, hingga musik latar berformat MP3/M4A/OGG.',
+  },
+  {
+    title: 'Simpan ke Kalender (.ics) & Peta Lokasi',
+    desc: 'Tamu dapat langsung mengunduh jadwal akad dan resepsi ke aplikasi kalender (.ics) serta melihat lokasi acara melalui peta tersemat dan Google Maps.',
+  },
+];
+
+const steps = [
+  { n: '01', title: 'Buat Undangan', desc: 'Daftar akun lalu pilih metode Otomatis (formulir cepat) atau Manual (editor visual penuh).' },
+  { n: '02', title: 'Sesuaikan Konten & Tema', desc: 'Lengkapi data mempelai, jadwal acara, galeri foto, musik latar, amplop digital, hingga ornamen.' },
+  { n: '03', title: 'Publikasikan & Bagikan', desc: 'Atur URL undangan pilihanmu, publikasikan, lalu sebarkan tautan personal ke tamu lewat WhatsApp.' },
+];
 ---
-<html lang="id">
-  <head><meta charset="utf-8" /><title>Undangan Digital</title></head>
-  <body class="min-h-screen grid place-items-center">
-    <h1 class="text-3xl font-bold">Undangan Digital berjalan</h1>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={`${appName} — Platform pembuat undangan pernikahan digital dengan editor visual, RSVP, amplop digital, dan sebar WhatsApp.`} />
+    <title>{appName} — Undangan Pernikahan Digital</title>
+  </head>
+  <body class="bg-[#fbf8f4] text-stone-900 antialiased" style="font-family: 'Inter Variable', system-ui, sans-serif;">
+    {/* Header */}
+    <header class="sticky top-0 z-30 border-b border-stone-200/80 bg-[#fbf8f4]/90 backdrop-blur">
+      <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <a href="/" class="text-lg font-semibold tracking-tight text-stone-900">{appName}</a>
+        <nav class="hidden items-center gap-7 text-sm text-stone-600 md:flex">
+          <a href="#fitur" class="hover:text-stone-900">Fitur</a>
+          <a href="#cara-kerja" class="hover:text-stone-900">Cara Kerja</a>
+        </nav>
+        <div class="flex items-center gap-3 text-sm">
+          {user ? (
+            <a href={user.role === 'admin' ? '/admin' : '/dashboard'}
+              class="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800">
+              Buka Dashboard
+            </a>
+          ) : (
+            <>
+              <a href="/login" class="px-3 py-2 font-medium text-stone-700 hover:text-stone-900">Masuk</a>
+              <a href="/register" class="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white hover:bg-stone-800">
+                Mulai Gratis
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <main>
+      {/* Hero */}
+      <section class="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-24">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b5e3c]">
+            Undangan Pernikahan Digital
+          </p>
+          <h1 class="mt-4 text-4xl font-bold leading-[1.15] tracking-tight text-stone-900 sm:text-5xl">
+            Buat undangan pernikahan elegan, personal, dan siap sebar dalam hitungan menit.
+          </h1>
+          <p class="mt-5 max-w-xl text-base leading-relaxed text-stone-600">
+            Rancang undangan digital dengan editor visual atau formulir otomatis. Lengkap dengan tautan nama tamu personal,
+            kirim WhatsApp terpantau, RSVP, ucapan doa, galeri interaktif, hingga amplop digital.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href={user ? '/dashboard/invitations/new' : '/register'}
+              class="rounded-lg bg-[#8b5e3c] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#764e30]">
+              {user ? '+ Buat Undangan Baru' : 'Buat Undangan Sekarang'}
+            </a>
+            <a href="#fitur"
+              class="rounded-lg border border-stone-300 bg-white px-6 py-3 text-sm font-medium text-stone-800 hover:bg-stone-50">
+              Lihat Semua Fitur
+            </a>
+          </div>
+
+          <dl class="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-stone-200 pt-6 text-sm">
+            <div>
+              <dt class="text-stone-500">Pembuatan</dt>
+              <dd class="mt-0.5 font-semibold text-stone-900">Otomatis &amp; Visual</dd>
+            </div>
+            <div>
+              <dt class="text-stone-500">Tamu &amp; RSVP</dt>
+              <dd class="mt-0.5 font-semibold text-stone-900">Link Personal + CSV</dd>
+            </div>
+            <div>
+              <dt class="text-stone-500">Akses</dt>
+              <dd class="mt-0.5 font-semibold text-stone-900">Siap Mobile &amp; OG Share</dd>
+            </div>
+          </dl>
+        </div>
+
+        {/* Ilustrasi Pratinjau Undangan */}
+        <div class="mx-auto w-full max-w-sm">
+          <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">
+            <div class="bg-[#8b5e3c] px-6 py-10 text-center text-white">
+              <p class="text-[11px] uppercase tracking-[0.28em] text-white/80">The Wedding Of</p>
+              <p class="mt-3 text-4xl" style="font-family: 'Great Vibes', cursive;">Andi &amp; Sarah</p>
+              <p class="mt-3 text-xs text-white/85">Sabtu, 20 Desember 2026 · Jakarta</p>
+              <div class="mt-5 inline-block rounded-lg bg-black/20 px-4 py-2 text-xs">
+                Kepada Yth. <strong>Budi Santoso</strong>
+              </div>
+            </div>
+            <div class="space-y-3 p-5 text-xs text-stone-600">
+              <div class="flex items-center justify-between rounded-lg border border-stone-100 bg-stone-50 px-3 py-2.5">
+                <span class="font-medium text-stone-800">Tautan Personal</span>
+                <span class="truncate pl-3 text-[#8b5e3c]">/andi-sarah?to=Budi</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2.5 text-center">
+                <div class="rounded-lg border border-stone-100 bg-stone-50 p-3">
+                  <p class="text-lg font-bold text-stone-900">128</p>
+                  <p class="text-[11px] text-stone-500">Konfirmasi Hadir</p>
+                </div>
+                <div class="rounded-lg border border-stone-100 bg-stone-50 p-3">
+                  <p class="text-lg font-bold text-stone-900">64</p>
+                  <p class="text-[11px] text-stone-500">Ucapan &amp; Doa</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between rounded-lg border border-stone-100 px-3 py-2">
+                <span>Amplop Digital · QRIS &amp; Bank</span>
+                <span class="font-medium text-stone-900">Aktif</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Fitur */}
+      <section id="fitur" class="border-t border-stone-200 bg-white py-20">
+        <div class="mx-auto max-w-6xl px-6">
+          <div class="max-w-2xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b5e3c]">Fitur Lengkap</p>
+            <h2 class="mt-2 text-3xl font-bold tracking-tight text-stone-900">
+              Semua yang dibutuhkan untuk undangan digital modern
+            </h2>
+            <p class="mt-3 text-sm leading-relaxed text-stone-600">
+              Dirancang agar mudah diisi oleh siapa saja, tetapi tetap fleksibel untuk dikustomisasi hingga detail terkecil.
+            </p>
+          </div>
+
+          <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((f) => (
+              <article class="rounded-xl border border-stone-200 bg-[#fbf8f4]/60 p-6">
+                <h3 class="text-base font-semibold text-stone-900">{f.title}</h3>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">{f.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Cara Kerja */}
+      <section id="cara-kerja" class="border-t border-stone-200 py-20">
+        <div class="mx-auto max-w-6xl px-6">
+          <div class="max-w-xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b5e3c]">Alur Kerja</p>
+            <h2 class="mt-2 text-3xl font-bold tracking-tight text-stone-900">Tiga langkah sampai siap dibagikan</h2>
+          </div>
+
+          <div class="mt-12 grid gap-6 md:grid-cols-3">
+            {steps.map((s) => (
+              <div class="rounded-xl border border-stone-200 bg-white p-6">
+                <span class="text-xs font-bold tracking-widest text-[#8b5e3c]">{s.n}</span>
+                <h3 class="mt-3 text-lg font-semibold text-stone-900">{s.title}</h3>
+                <p class="mt-2 text-sm leading-relaxed text-stone-600">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Penutup */}
+      <section class="border-t border-stone-200 bg-stone-900 py-16 text-white">
+        <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 md:flex-row md:items-center">
+          <div>
+            <h2 class="text-2xl font-bold sm:text-3xl">Siap membuat undangan digitalmu?</h2>
+            <p class="mt-2 text-sm text-stone-300">
+              Mulai buat draf undangan dan lihat hasilnya secara langsung sebelum dipublikasikan.
+            </p>
+          </div>
+          <a href={user ? '/dashboard' : '/register'}
+            class="shrink-0 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">
+            {user ? 'Ke Dashboard' : 'Daftar & Mulai'}
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-stone-200 bg-[#fbf8f4] py-8 text-center text-xs text-stone-500">
+      <div class="mx-auto max-w-6xl px-6">
+        &copy; {new Date().getFullYear()} {appName}.
+      </div>
+    </footer>
   </body>
 </html>
