@@ -1,0 +1,41 @@
+---
+import { getMaxAudioBytes } from '../../lib/upload.js';
+const maxMb = getMaxAudioBytes() / 1024 / 1024;
+---
+<div class="space-y-3" data-music>
+  <div>
+    <p class="text-sm font-medium">Lagu terpilih</p>
+    <p data-music-none class="text-sm text-gray-500">Belum ada lagu dipilih.</p>
+    <audio data-music-preview controls preload="none" class="mt-1 hidden w-full"></audio>
+    <button type="button" data-music-clear
+      class="mt-1 hidden rounded border px-3 py-1 text-xs text-red-600 hover:bg-red-50">Lepas lagu</button>
+  </div>
+
+  <div>
+    <p class="text-sm font-medium">Pustaka lagu</p>
+    <ul data-music-list class="mt-1 space-y-1"></ul>
+    <label class="mt-2 inline-block cursor-pointer rounded border px-3 py-1.5 text-sm hover:bg-gray-50">
+      Unggah lagu (MP3, M4A, OGG · maks {maxMb} MB)
+      <input type="file" accept="audio/mpeg,audio/mp4,audio/ogg,.mp3,.m4a,.ogg" class="hidden" data-music-upload />
+    </label>
+    <p data-music-msg class="mt-1 text-xs text-red-600"></p>
+  </div>
+
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" data-bind="music.autoplay" /> Putar otomatis
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <input type="checkbox" data-bind="music.loop" /> Ulangi terus (loop)
+  </label>
+  <div>
+    <label for="f-music-volume" class="block text-xs text-gray-600">Volume</label>
+    <input id="f-music-volume" type="range" min="0" max="100" step="5"
+      data-bind="music.volume" data-type="number" class="w-full" />
+  </div>
+
+  <p class="text-xs text-gray-500">
+    Putar otomatis dimulai saat tamu menekan "Buka Undangan", karena browser melarang suara otomatis sebelum ada interaksi.
+    Pastikan kamu berhak memakai lagu yang diunggah. Menghapus file lagu dilakukan di halaman Kelola.
+  </p>
+  <p class="text-sm text-red-600" data-error-for="music.assetId"></p>
+</div>

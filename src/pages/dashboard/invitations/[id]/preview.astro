@@ -1,0 +1,44 @@
+---
+import InvitationShell from '../../../../layouts/InvitationShell.astro';
+import { getOwnedInvitation } from '../../../../lib/invitations.js';
+import {
+  SECTION_LABELS, getRenderData, guestNameFrom, visibleSections,
+} from '../../../../lib/render-data.js';
+
+const user = Astro.locals.user;
+const { id } = Astro.params;
+
+const inv = await getOwnedInvitation(id, user.id);
+if (!inv) return Astro.rewrite('/404');
+
+// Konten draft bersifat privat: jangan di-cache
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+const { content, images } = await getRenderData(inv.id);
+const guestName = guestNameFrom(Astro.url);
+const embed = Astro.url.searchParams.get('embed') === '1'; // di dalam iframe editor: sembunyikan banner
+
+const shown = visibleSections(content, images);
+const hidden = content.sectionOrder.filter((k) => !shown.includes(k)).map((k) => SECTION_LABELS[k]);
+const isLive = inv.status === 'published' && !inv.isDisabled;
+---
+<InvitationShell invitation={inv} content={content} images={images} guestName={guestName}>
+  <div slot="banner" class="sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white">
+      <div slot="banner" class={`sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white ${embed ? 'hidden' : ''}`}>
+      <span>
+        Mode preview · status: <strong>{inv.status === 'published' ? 'Published' : 'Draft'}</strong>
+        {inv.isDisabled && ' (dinonaktifkan admin)'} · hanya terlihat olehmu
+      </span>
+      <span class="flex gap-3">
+        <a href={`/dashboard/invitations/${id}`} class="underline">Kelola</a>
+        {inv.method === 'automatic' && (
+          <a href={`/dashboard/invitations/${id}/form`} class="underline">Edit formulir</a>
+        )}
+        {isLive && <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="underline">Versi publik</a>}
+      </span>
+    </div>
+    {hidden.length > 0 && (
+      <p class="mt-1 text-white/70">Tidak tampil: {hidden.join(', ')} (data belum diisi atau section dinonaktifkan)</p>
+    )}
+  </div>
+</InvitationShell>

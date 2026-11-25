@@ -1,0 +1,16 @@
+---
+const { path, label, type = 'text', rows, maxlength, placeholder = '', list, hint = '' } = Astro.props;
+const id = `f-${path.replaceAll('.', '-')}`;
+---
+<div>
+  <label for={id} class="block text-sm font-medium">{label}</label>
+  {rows ? (
+    <textarea id={id} data-bind={path} rows={rows} maxlength={maxlength} placeholder={placeholder}
+      class="mt-1 w-full rounded border px-3 py-2 text-sm"></textarea>
+  ) : (
+    <input id={id} data-bind={path} type={type} list={list} maxlength={maxlength} placeholder={placeholder}
+      class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+  )}
+  {hint && <p class="mt-1 text-xs text-gray-500">{hint}</p>}
+  <p class="mt-1 text-sm text-red-600" data-error-for={path}></p>
+</div>

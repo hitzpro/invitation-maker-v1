@@ -1,0 +1,89 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import { desc, eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { invitations } from '../db/schema.js';
+
+const user = Astro.locals.user;
+
+// Hanya undangan milik user yang sedang login
+const list = await db
+  .select()
+  .from(invitations)
+  .where(eq(invitations.userId, user.id))
+  .orderBy(desc(invitations.updatedAt));
+
+const total = list.length;
+const published = list.filter((i) => i.status === 'published').length;
+const draft = total - published;
+
+const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' });
+const methodLabel = { automatic: 'Otomatis', manual: 'Manual' };
+---
+<AppLayout title="Dashboard">
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-bold">Halo, {user.name}</h1>
+      <p class="text-sm text-gray-600">Kelola undangan digitalmu di sini.</p>
+    </div>
+    <a href="/dashboard/invitations/new" class="bg-black text-white rounded px-4 py-2 text-sm">
+      + Buat Undangan Baru
+    </a>
+  </div>
+
+  <section class="mt-6 grid grid-cols-3 gap-4">
+    <div class="bg-white border rounded-lg p-4">
+      <p class="text-sm text-gray-600">Total</p>
+      <p class="text-3xl font-bold">{total}</p>
+    </div>
+    <div class="bg-white border rounded-lg p-4">
+      <p class="text-sm text-gray-600">Published</p>
+      <p class="text-3xl font-bold">{published}</p>
+    </div>
+    <div class="bg-white border rounded-lg p-4">
+      <p class="text-sm text-gray-600">Draft</p>
+      <p class="text-3xl font-bold">{draft}</p>
+    </div>
+  </section>
+
+  <section class="mt-8">
+    <h2 class="font-semibold mb-3">Undangan Saya</h2>
+
+    {list.length === 0 ? (
+      <div class="bg-white border border-dashed rounded-lg p-10 text-center">
+        <p class="font-medium">Belum ada undangan</p>
+        <p class="text-sm text-gray-600 mt-1">Buat undangan pertamamu sekarang.</p>
+        <a href="/dashboard/invitations/new" class="inline-block mt-4 bg-black text-white rounded px-4 py-2 text-sm">
+          Buat Undangan
+        </a>
+      </div>
+    ) : (
+      <ul class="space-y-3">
+        {list.map((inv) => (
+          <li class="bg-white border rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
+            <div class="min-w-0">
+              <p class="font-medium truncate">{inv.title}</p>
+              <p class="text-xs text-gray-600 mt-1">
+                /{inv.slug} · {methodLabel[inv.method]} · diperbarui {fmt.format(inv.updatedAt)}
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              {inv.isDisabled && (
+                <span class="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Dinonaktifkan</span>
+              )}
+              <span
+                class={
+                  'text-xs px-2 py-1 rounded ' +
+                  (inv.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700')
+                }
+              >
+                {inv.status === 'published' ? 'Published' : 'Draft'}
+              </span>
+              <a href={`/dashboard/invitations/${inv.id}`} class="text-sm underline">Kelola</a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+</AppLayout>

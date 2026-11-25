@@ -1,0 +1,21 @@
+---
+import { ORNAMENTS } from './ornaments.js';
+
+const { items = [] } = Astro.props;
+
+// Posisi kanan/bawah dicerminkan otomatis agar ornamen selalu menghadap ke dalam
+const scaleOf = (position, flip) => {
+  const sx = (position.endsWith('right') ? -1 : 1) * (flip ? -1 : 1);
+  const sy = position.startsWith('bottom') ? -1 : 1;
+  return `${sx} ${sy}`;
+};
+
+const rendered = items
+  .filter((d) => Object.hasOwn(ORNAMENTS, d.kind))
+  .map((d) => ({ ...d, ornament: ORNAMENTS[d.kind], scale: scaleOf(d.position, d.flip) }));
+---
+{rendered.map((d) => (
+  <svg class="orn" data-kind={d.kind} data-size={d.size} data-pos={d.position}
+    viewBox={d.ornament.viewBox} fill="currentColor" style={`scale: ${d.scale}`}
+    aria-hidden="true" focusable="false" set:html={d.ornament.body} />
+))}

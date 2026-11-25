@@ -1,0 +1,15 @@
+---
+import '../styles/global.css';
+Astro.response.status = 403;
+Astro.response.statusText = 'Forbidden';
+---
+<html lang="id">
+  <head><meta charset="utf-8" /><title>403 - Akses ditolak</title></head>
+  <body class="min-h-screen grid place-items-center">
+    <div class="text-center">
+      <h1 class="text-4xl font-bold">403</h1>
+      <p class="mt-2">Kamu tidak punya akses ke halaman ini.</p>
+      <a href="/dashboard" class="underline mt-4 inline-block">Kembali ke dashboard</a>
+    </div>
+  </body>
+</html>

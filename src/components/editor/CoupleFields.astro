@@ -1,0 +1,24 @@
+---
+import EField from './EField.astro';
+import PhotoField from './PhotoField.astro';
+---
+<EField path="sections.couple.intro" label="Kalimat pembuka" rows="3" maxlength="500"
+  hint="Misalnya ayat atau kutipan yang ingin ditampilkan di awal undangan." />
+
+<fieldset class="space-y-3 rounded border p-3">
+  <legend class="px-1 text-sm font-medium">Mempelai wanita</legend>
+  <PhotoField path="sections.couple.bride.photoId" label="Foto mempelai wanita" />
+  <EField path="sections.couple.bride.name" label="Nama panggilan" maxlength="40" />
+  <EField path="sections.couple.bride.fullName" label="Nama lengkap" maxlength="100" />
+  <EField path="sections.couple.bride.parents" label="Putri dari (orang tua)" maxlength="200"
+    placeholder="Bapak ... dan Ibu ..." />
+</fieldset>
+
+<fieldset class="space-y-3 rounded border p-3">
+  <legend class="px-1 text-sm font-medium">Mempelai pria</legend>
+  <PhotoField path="sections.couple.groom.photoId" label="Foto mempelai pria" />
+  <EField path="sections.couple.groom.name" label="Nama panggilan" maxlength="40" />
+  <EField path="sections.couple.groom.fullName" label="Nama lengkap" maxlength="100" />
+  <EField path="sections.couple.groom.parents" label="Putra dari (orang tua)" maxlength="200"
+    placeholder="Bapak ... dan Ibu ..." />
+</fieldset>

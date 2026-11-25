@@ -1,0 +1,20 @@
+---
+const { content } = Astro.props;
+const loc = content.sections.location;
+const split = loc.style?.layout === 'split';
+
+// Validasi ulang saat render (pertahanan berlapis), lalu fallback ke pencarian Google Maps
+const fallback = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${loc.venueName} ${loc.address}`.trim())}`;
+const href = /^https?:\/\//i.test(loc.mapsUrl) ? loc.mapsUrl : fallback;
+---
+<section id="venue" class={'px-6 py-16 ' + (split ? 'flex items-center justify-between gap-6 text-left' : 'text-center')}>
+  <div>
+    <h2 class={'inv-title ' + (split ? 'text-2xl' : 'text-3xl')}>Lokasi</h2>
+    <p class="fx-h mt-4 text-lg font-semibold">{loc.venueName}</p>
+    {loc.address && <p class="inv-muted mt-1 text-sm whitespace-pre-line">{loc.address}</p>}
+  </div>
+  <a href={href} target="_blank" rel="noopener noreferrer"
+    class={'inv-btn inline-block rounded-full px-6 py-3 text-sm ' + (split ? 'shrink-0' : 'mt-6')}>
+    Buka di Google Maps
+  </a>
+</section>

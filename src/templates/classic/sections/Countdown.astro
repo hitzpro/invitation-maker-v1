@@ -1,0 +1,51 @@
+---
+import { eventInstantISO, sortedEvents } from '../../../lib/render-data.js';
+
+const { content } = Astro.props;
+const first = sortedEvents(content)[0];
+const target = eventInstantISO(first, content.sections.event.timezone);
+const units = [['d', 'Hari'], ['h', 'Jam'], ['m', 'Menit'], ['s', 'Detik']];
+const split = content.sections.countdown.style?.layout === 'split';
+---
+<section id="countdown" class={'px-6 py-16 ' + (split ? 'flex items-center justify-between gap-6 text-left' : 'text-center')}>
+  <h2 class={'inv-title ' + (split ? 'w-2/5 text-2xl' : 'text-3xl')}>Menuju Hari Bahagia</h2>
+
+  <div data-countdown data-target={target} class={split ? 'w-3/5' : 'mt-8'}>
+    <div class={'grid gap-3 ' + (split ? 'grid-cols-2' : 'grid-cols-4')}>
+      {units.map(([unit, label]) => (
+        <div class="inv-chip rounded-lg py-4 text-center">
+          <div class="inv-title text-3xl tabular-nums" data-unit={unit}>--</div>
+          <div class="inv-muted mt-1 text-xs uppercase tracking-wider">{label}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+  <p data-countdown-done class="mt-8 hidden">Hari bahagia telah tiba. Terima kasih atas doa dan kehadiran Anda.</p>
+</section>
+
+<script>
+  document.querySelectorAll('[data-countdown]').forEach((el) => {
+    const target = new Date(el.dataset.target).getTime();
+    const done = el.parentElement.querySelector('[data-countdown-done]');
+    const show = (unit, value) => {
+      el.querySelector(`[data-unit="${unit}"]`).textContent = String(value).padStart(2, '0');
+    };
+
+    const tick = () => {
+      const diff = target - Date.now();
+      if (Number.isNaN(target) || diff <= 0) {
+        el.classList.add('hidden');
+        done?.classList.remove('hidden');
+        clearInterval(timer);
+        return;
+      }
+      show('d', Math.floor(diff / 86_400_000));
+      show('h', Math.floor((diff % 86_400_000) / 3_600_000));
+      show('m', Math.floor((diff % 3_600_000) / 60_000));
+      show('s', Math.floor((diff % 60_000) / 1000));
+    };
+
+    const timer = setInterval(tick, 1000);
+    tick();
+  });
+</script>

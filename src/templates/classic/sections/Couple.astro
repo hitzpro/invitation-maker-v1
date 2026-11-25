@@ -1,0 +1,36 @@
+---
+import { FRAMES } from '../../../lib/content.js';
+
+const { content, images } = Astro.props;
+const { couple } = content.sections;
+
+const layout = couple.style?.layout === 'split' ? 'split' : 'centered';
+const frame = FRAMES.includes(couple.style?.frame) ? couple.style.frame : 'circle';
+
+const people = [
+  { person: couple.bride, label: 'Putri dari', image: images.get(couple.bride.photoId) },
+  { person: couple.groom, label: 'Putra dari', image: images.get(couple.groom.photoId) },
+];
+---
+<section id="couple" data-layout={layout} class="px-6 py-16 text-center">
+  <h2 class="inv-title text-3xl">Mempelai</h2>
+  {couple.intro && <p class="mt-4 text-sm leading-relaxed whitespace-pre-line">{couple.intro}</p>}
+
+  <div class={'mt-10 ' + (layout === 'split' ? 'grid grid-cols-2 items-start gap-4' : 'space-y-6')}>
+    {people.map(({ person, label, image }, i) => (
+      <>
+        {layout === 'centered' && i === 1 && <p class="fx-h inv-title text-4xl">&amp;</p>}
+        <article>
+          {image && (
+            <div class={`frame frame-${frame}`}>
+              <img src={image.thumb} width={image.width} height={image.height} alt={person.name}
+                loading="lazy" decoding="async" />
+            </div>
+          )}
+          <h3 class={'mt-4 ' + (layout === 'split' ? 'text-xl' : 'text-2xl')}>{person.fullName}</h3>
+          {person.parents && <p class="inv-muted mt-1 text-sm">{label} {person.parents}</p>}
+        </article>
+      </>
+    ))}
+  </div>
+</section>

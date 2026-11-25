@@ -1,0 +1,38 @@
+---
+const { sectionKey } = Astro.props;
+const base = `sections.${sectionKey}.fonts`;
+
+const ROLES = {
+  cover: [['title', 'Teks sampul'], ['heading', 'Nama mempelai'], ['body', 'Tanggal & nama tamu']],
+  couple: [['title', 'Judul section'], ['heading', 'Nama mempelai'], ['body', 'Intro & orang tua']],
+  event: [['title', 'Judul section'], ['heading', 'Nama acara & tempat'], ['body', 'Tanggal, jam, alamat']],
+  countdown: [['title', 'Judul section'], ['body', 'Pesan akhir']],
+  story: [['title', 'Judul section'], ['heading', 'Judul cerita'], ['body', 'Waktu & isi cerita']],
+  gallery: [['title', 'Judul section']],
+  location: [['title', 'Judul section'], ['heading', 'Nama tempat'], ['body', 'Alamat']],
+  rsvp: [['title', 'Judul section'], ['body', 'Teks isi']],
+  wishes: [['title', 'Judul section'], ['body', 'Teks isi']],
+  closing: [['heading', 'Nama mempelai'], ['body', 'Pesan penutup']],
+};
+const roles = ROLES[sectionKey] ?? [];
+const FAMILIES = [['default', 'Default (serif)'], ['sans', 'Sans serif'], ['script', 'Tipografi']];
+---
+<div class="space-y-2 rounded border bg-gray-50 p-3">
+  <p class="text-sm font-medium">Font</p>
+  {roles.map(([role, label]) => (
+    <div class="flex items-center gap-2" data-font-row>
+      <span class="w-28 shrink-0 text-xs text-gray-600">{label}</span>
+      <select data-bind={`${base}.${role}.family`} data-font-family aria-label={`Font ${label}`}
+        class="min-w-0 flex-1 rounded border bg-white px-2 py-1.5 text-sm">
+        {FAMILIES.map(([value, text]) => <option value={value}>{text}</option>)}
+      </select>
+      <button type="button" data-font-toggle="bold" data-path={`${base}.${role}.bold`}
+        aria-label={`Tebal: ${label}`} aria-pressed="false"
+        class="h-8 w-8 shrink-0 rounded border bg-white text-sm font-bold">B</button>
+      <button type="button" data-font-toggle="italic" data-path={`${base}.${role}.italic`}
+        aria-label={`Miring: ${label}`} aria-pressed="false"
+        class="h-8 w-8 shrink-0 rounded border bg-white text-sm italic">I</button>
+    </div>
+  ))}
+  <p class="text-xs text-gray-500">Font "Tipografi" bersifat dekoratif dan tidak punya varian tebal atau miring.</p>
+</div>

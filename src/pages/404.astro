@@ -1,0 +1,14 @@
+---
+import '../styles/global.css';
+Astro.response.status = 404;
+---
+<html lang="id">
+  <head><meta charset="utf-8" /><title>404 - Tidak ditemukan</title></head>
+  <body class="min-h-screen grid place-items-center">
+    <div class="text-center">
+      <h1 class="text-4xl font-bold">404</h1>
+      <p class="mt-2">Halaman tidak ditemukan.</p>
+      <a href="/dashboard" class="underline mt-4 inline-block">Ke dashboard</a>
+    </div>
+  </body>
+</html>

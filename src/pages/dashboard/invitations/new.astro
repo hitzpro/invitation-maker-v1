@@ -1,0 +1,67 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import { z } from 'zod';
+import { createInvitation } from '../../../lib/invitations.js';
+
+const user = Astro.locals.user;
+
+const schema = z.object({
+  title: z.string().trim().min(3, 'Judul minimal 3 karakter').max(120, 'Judul maksimal 120 karakter'),
+  method: z.enum(['automatic', 'manual'], { message: 'Pilih metode pembuatan' }),
+});
+
+let errors = {};
+let values = { title: '', method: 'automatic' };
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const input = {
+    title: String(form.get('title') ?? ''),
+    method: String(form.get('method') ?? ''),
+  };
+  values = input;
+
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      (errors[issue.path[0]] ??= []).push(issue.message);
+    }
+  } else {
+    const inv = await createInvitation(user.id, parsed.data);
+    return Astro.redirect(`/dashboard/invitations/${inv.id}`);
+  }
+}
+---
+<AppLayout title="Buat Undangan">
+  <a href="/dashboard" class="text-sm underline">← Kembali</a>
+  <h1 class="text-2xl font-bold mt-2">Buat Undangan Baru</h1>
+
+  <form method="POST" class="mt-6 max-w-xl bg-white border rounded-lg p-6 space-y-5">
+    <div>
+      <label for="title" class="block text-sm font-medium">Judul undangan</label>
+      <input id="title" name="title" value={values.title} required maxlength="120"
+        placeholder="Contoh: Pernikahan Andi & Sarah"
+        class="mt-1 w-full border rounded px-3 py-2" />
+      {errors.title && <p class="text-sm text-red-600 mt-1">{errors.title[0]}</p>}
+    </div>
+
+    <fieldset>
+      <legend class="block text-sm font-medium">Metode pembuatan</legend>
+      <div class="mt-2 grid sm:grid-cols-2 gap-3">
+        <label class="border rounded-lg p-4 cursor-pointer has-[:checked]:border-black has-[:checked]:bg-gray-50">
+          <input type="radio" name="method" value="automatic" checked={values.method === 'automatic'} class="mr-2" />
+          <span class="font-medium">Automatic</span>
+          <span class="block text-sm text-gray-600 mt-1">Isi formulir, sistem menyusun undangan dari template bawaan.</span>
+        </label>
+        <label class="border rounded-lg p-4 cursor-pointer has-[:checked]:border-black has-[:checked]:bg-gray-50">
+          <input type="radio" name="method" value="manual" checked={values.method === 'manual'} class="mr-2" />
+          <span class="font-medium">Manual</span>
+          <span class="block text-sm text-gray-600 mt-1">Atur teks, gambar, warna, dan urutan section lewat editor.</span>
+        </label>
+      </div>
+      {errors.method && <p class="text-sm text-red-600 mt-1">{errors.method[0]}</p>}
+    </fieldset>
+
+    <button class="bg-black text-white rounded px-4 py-2 text-sm">Buat Undangan</button>
+  </form>
+</AppLayout>

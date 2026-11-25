@@ -1,0 +1,306 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import { z } from 'zod';
+import { env } from '../../../lib/env.js';
+import {
+  getOwnedInvitation, updateOwnedInvitation, deleteOwnedInvitation, isUniqueViolation, listAssets,
+} from '../../../lib/invitations.js';
+import { isSlugTaken, validateSlug } from '../../../lib/slug.js';
+import { MAX_ASSETS_PER_INVITATION } from '../../../lib/upload.js';
+import { getInvitationContent } from '../../../lib/content.js';
+import { publishProblems } from '../../../lib/render-data.js';
+
+const user = Astro.locals.user;
+const { id } = Astro.params;
+
+const inv = await getOwnedInvitation(id, user.id);
+if (!inv) return Astro.rewrite('/404'); // bukan milik user / tidak ada -> 404
+
+const titleSchema = z.string().trim().min(3, 'Judul minimal 3 karakter').max(120, 'Judul maksimal 120 karakter');
+const errors = {};
+let slugValue = inv.slug;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? '');
+
+  if (action === 'delete') {
+    await deleteOwnedInvitation(id, user.id);
+    return Astro.redirect('/dashboard');
+  }
+
+  if (action === 'update') {
+    const parsed = titleSchema.safeParse(String(form.get('title') ?? ''));
+    if (!parsed.success) {
+      errors.title = parsed.error.issues[0].message;
+    } else {
+      await updateOwnedInvitation(id, user.id, { title: parsed.data });
+      return Astro.redirect(`/dashboard/invitations/${id}?saved=title`);
+    }
+  }
+
+  if (action === 'slug') {
+    const slug = String(form.get('slug') ?? '').trim().toLowerCase();
+    slugValue = slug;
+    const problem = validateSlug(slug);
+
+    if (problem) {
+      errors.slug = problem;
+    } else if (slug === inv.slug) {
+      return Astro.redirect(`/dashboard/invitations/${id}`);
+    } else if (await isSlugTaken(slug, inv.id)) {
+      errors.slug = 'URL sudah dipakai undangan lain';
+    } else {
+      try {
+        await updateOwnedInvitation(id, user.id, { slug });
+        return Astro.redirect(`/dashboard/invitations/${id}?saved=slug`);
+      } catch (err) {
+        // dua user menyimpan slug yang sama bersamaan: constraint database yang menang
+        if (isUniqueViolation(err)) errors.slug = 'URL sudah dipakai undangan lain';
+        else throw err;
+      }
+    }
+  }
+
+  if (action === 'publish') {
+    if (inv.isDisabled) {
+      errors.publish = 'Undangan dinonaktifkan administrator dan tidak bisa dipublikasikan.';
+    } else {
+      const problems = publishProblems(await getInvitationContent(inv.id));
+      if (problems.length > 0) {
+        errors.publish = `Lengkapi dulu sebelum publikasi: ${problems.join('; ')}.`;
+      } else {
+        if (inv.status !== 'published') {
+          await updateOwnedInvitation(id, user.id, { status: 'published', publishedAt: new Date() });
+        }
+        return Astro.redirect(`/dashboard/invitations/${id}?saved=published`);
+      }
+    }
+  }
+
+  if (action === 'unpublish') {
+    if (inv.status !== 'draft') {
+      await updateOwnedInvitation(id, user.id, { status: 'draft' });
+    }
+    return Astro.redirect(`/dashboard/invitations/${id}?saved=unpublished`);
+  }
+}
+
+const assets = await listAssets(inv.id);
+const tracks = await listAssets(inv.id, 'audio');
+
+const savedMessages = {
+  title: 'Judul tersimpan.',
+  slug: 'URL undangan diperbarui.',
+  published: 'Undangan dipublikasikan dan sudah bisa dibuka lewat URL publik.',
+  unpublished: 'Undangan dikembalikan ke draft dan tidak lagi bisa dibuka publik.',
+  form: 'Data formulir tersimpan.',
+};
+const savedKey = Astro.url.searchParams.get('saved') ?? '';
+const savedMessage = Object.hasOwn(savedMessages, savedKey) ? savedMessages[savedKey] : null;
+
+const appUrl = (env('APP_URL') ?? Astro.url.origin).replace(/\/$/, '');
+const publicUrl = `${appUrl}/${inv.slug}`;
+const isPublished = inv.status === 'published';
+
+const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
+const methodLabel = { automatic: 'Automatic', manual: 'Manual' };
+---
+<AppLayout title={inv.title}>
+  <a href="/dashboard" class="text-sm underline">← Kembali</a>
+  <div class="flex items-center justify-between gap-3 flex-wrap mt-2">
+    <h1 class="text-2xl font-bold">{inv.title}</h1>
+    <div class="flex items-center gap-2">
+      <a href={`/dashboard/invitations/${inv.id}/preview`} target="_blank" rel="noopener"
+        class="border rounded px-3 py-1 text-sm hover:bg-gray-100">Preview</a>
+      <span class={'text-xs px-2 py-1 rounded ' + (isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700')}>
+        {isPublished ? 'Published' : 'Draft'}
+      </span>
+    </div>
+  </div>
+
+  {savedMessage && <p class="mt-4 text-sm bg-green-50 text-green-700 border border-green-200 rounded px-3 py-2">{savedMessage}</p>}
+  {inv.isDisabled && <p class="mt-4 text-sm bg-red-50 text-red-700 border border-red-200 rounded px-3 py-2">Undangan ini dinonaktifkan oleh administrator.</p>}
+
+  <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+    <h2 class="font-semibold mb-3">Informasi dasar</h2>
+    <form method="POST" class="space-y-3">
+      <input type="hidden" name="_action" value="update" />
+      <label for="title" class="block text-sm font-medium">Judul</label>
+      <input id="title" name="title" value={inv.title} required maxlength="120" class="w-full border rounded px-3 py-2" />
+      {errors.title && <p class="text-sm text-red-600">{errors.title}</p>}
+      <button class="bg-black text-white rounded px-4 py-2 text-sm">Simpan</button>
+    </form>
+
+    <dl class="mt-6 text-sm grid grid-cols-[8rem_1fr] gap-y-2">
+      <dt class="text-gray-600">Metode</dt><dd>{methodLabel[inv.method]}</dd>
+      <dt class="text-gray-600">Dibuat</dt><dd>{fmt.format(inv.createdAt)}</dd>
+      <dt class="text-gray-600">Diperbarui</dt><dd>{fmt.format(inv.updatedAt)}</dd>
+      {inv.publishedAt && (<><dt class="text-gray-600">Pertama publish</dt><dd>{fmt.format(inv.publishedAt)}</dd></>)}
+    </dl>
+  </section>
+
+  {inv.method === 'automatic' && (
+    <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+      <h2 class="font-semibold">Isi undangan</h2>
+      <p class="text-sm text-gray-600 mt-1">Lengkapi data mempelai, acara, dan cerita lewat formulir. Hasilnya otomatis diterapkan ke template.</p>
+      <a href={`/dashboard/invitations/${inv.id}/form`} class="inline-block mt-3 bg-black text-white rounded px-4 py-2 text-sm">
+        Isi / Ubah Formulir
+      </a>
+    </section>
+  )}
+
+  {inv.method === 'manual' && (
+    <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+      <h2 class="font-semibold">Editor</h2>
+      <p class="text-sm text-gray-600 mt-1">Atur teks, gambar, warna, dan urutan section lewat editor visual. Perubahan tersimpan otomatis.</p>
+      <a href={`/dashboard/invitations/${inv.id}/editor`} class="inline-block mt-3 bg-black text-white rounded px-4 py-2 text-sm">
+        Buka Editor
+      </a>
+    </section>
+  )}
+
+  <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+    <h2 class="font-semibold mb-3">Publikasi dan URL</h2>
+
+    <form method="POST" class="space-y-2">
+      <input type="hidden" name="_action" value="slug" />
+      <label for="slug" class="block text-sm font-medium">URL undangan</label>
+      <div class="flex items-stretch border rounded overflow-hidden">
+        <span class="bg-gray-100 text-gray-600 text-sm px-3 flex items-center whitespace-nowrap">{appUrl}/</span>
+        <input id="slug" name="slug" value={slugValue} required minlength="3" maxlength="50"
+          class="flex-1 min-w-0 px-3 py-2 outline-none" autocomplete="off" spellcheck="false" />
+      </div>
+      {errors.slug && <p class="text-sm text-red-600">{errors.slug}</p>}
+      <p class="text-xs text-gray-600">Huruf kecil, angka, dan tanda hubung. 3–50 karakter.
+        {isPublished && ' Mengubah URL membuat tautan lama tidak lagi berlaku.'}</p>
+      <button class="border rounded px-4 py-2 text-sm hover:bg-gray-100">Simpan URL</button>
+    </form>
+
+    <hr class="my-5" />
+
+    {isPublished ? (
+      <div class="space-y-3">
+        <p class="text-sm">Undangan sedang <strong>dipublikasikan</strong>. Bagikan tautan ini ke tamu:</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="text-sm underline break-all">{publicUrl}</a>
+          <button type="button" id="copy-url" data-url={publicUrl} class="border rounded px-3 py-1 text-xs hover:bg-gray-100">Salin</button>
+        </div>
+        <form method="POST">
+          <input type="hidden" name="_action" value="unpublish" />
+          <button class="border rounded px-4 py-2 text-sm hover:bg-gray-100">Kembalikan ke draft</button>
+        </form>
+      </div>
+    ) : (
+      <div class="space-y-3">
+        <p class="text-sm">Undangan masih <strong>draft</strong> dan hanya bisa dilihat olehmu.</p>
+        <form method="POST">
+          <input type="hidden" name="_action" value="publish" />
+          <button disabled={inv.isDisabled}
+            class="bg-black text-white rounded px-4 py-2 text-sm disabled:opacity-40">Publikasikan</button>
+        </form>
+      </div>
+    )}
+    {errors.publish && <p class="text-sm text-red-600 mt-2">{errors.publish}</p>}
+  </section>
+
+  <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+    <h2 class="font-semibold">Galeri gambar</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      JPEG atau PNG, maksimal 20 MB per file ({assets.length}/{MAX_ASSETS_PER_INVITATION} gambar).
+    </p>
+
+    <form id="upload-form" action={`/api/invitations/${inv.id}/assets`} method="POST"
+      enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+      <input type="file" name="file" accept="image/jpeg,image/png" class="text-sm" />
+      <button class="bg-black text-white rounded px-4 py-2 text-sm">Unggah</button>
+    </form>
+    <p id="upload-error" class="text-sm text-red-600 mt-2"></p>
+
+    {assets.length > 0 && (
+      <ul class="mt-4 grid grid-cols-3 gap-3">
+        {assets.map((a) => (
+          <li class="relative">
+            <img src={`/uploads/${a.filename}`} alt={a.originalName} loading="lazy"
+              class="w-full aspect-square object-cover rounded border" />
+            <button type="button" data-delete-asset={`/api/invitations/${inv.id}/assets/${a.id}`}
+              class="absolute top-1 right-1 bg-white/90 border rounded px-2 text-xs">Hapus</button>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  {tracks.length > 0 && (
+    <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+      <h2 class="font-semibold">Lagu</h2>
+      <ul class="mt-3 space-y-2">
+        {tracks.map((t) => (
+          <li class="flex items-center justify-between gap-3 text-sm">
+            <span class="truncate">{t.originalName}</span>
+            <button type="button" data-delete-asset={`/api/invitations/${inv.id}/assets/${t.id}`}
+              class="shrink-0 rounded border px-2 py-0.5 text-xs text-red-600">Hapus</button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="mt-6 border border-red-200 rounded-lg p-6 max-w-xl">
+    <h2 class="font-semibold text-red-700">Hapus undangan</h2>
+    <p class="text-sm text-gray-600 mt-1">Seluruh konten, gambar, RSVP, dan ucapan tamu ikut terhapus. Tindakan ini tidak bisa dibatalkan.</p>
+    <form method="POST" class="mt-3" onsubmit="return confirm('Hapus undangan ini secara permanen?')">
+      <input type="hidden" name="_action" value="delete" />
+      <button class="border border-red-600 text-red-700 rounded px-4 py-2 text-sm hover:bg-red-50">Hapus undangan</button>
+    </form>
+  </section>
+</AppLayout>
+
+<script>
+  const form = document.getElementById('upload-form');
+  const errorEl = document.getElementById('upload-error');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.textContent = '';
+    const fd = new FormData(form);
+    const file = fd.get('file');
+    if (!(file instanceof File) || file.size === 0) {
+      errorEl.textContent = 'Pilih file terlebih dahulu';
+      return;
+    }
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'Mengunggah...';
+    try {
+      const res = await fetch(form.action, { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Gagal mengunggah');
+      location.reload();
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btn.disabled = false;
+      btn.textContent = 'Unggah';
+    }
+  });
+
+  document.querySelectorAll('[data-delete-asset]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Hapus gambar ini?')) return;
+      const res = await fetch(btn.dataset.deleteAsset, { method: 'DELETE' });
+      if (res.ok) location.reload();
+      else alert('Gagal menghapus gambar');
+    });
+  });
+
+  document.getElementById('copy-url')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.url);
+      btn.textContent = 'Tersalin';
+      setTimeout(() => (btn.textContent = 'Salin'), 1500);
+    } catch {
+      prompt('Salin URL ini:', btn.dataset.url);
+    }
+  });
+</script>

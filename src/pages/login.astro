@@ -1,0 +1,56 @@
+---
+import '../styles/global.css';
+import { eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { users } from '../db/schema.js';
+import { verifyPassword } from '../lib/password.js';
+import { createSession, setSessionCookie } from '../lib/session.js';
+
+if (Astro.locals.user) return Astro.redirect('/dashboard');
+
+let error = '';
+let email = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  email = String(form.get('email') ?? '').trim().toLowerCase();
+  const password = String(form.get('password') ?? '');
+
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const valid = user && user.isActive && (await verifyPassword(user.passwordHash, password));
+
+  if (!valid) {
+    error = 'Email atau password salah';
+  } else {
+    const { token, expiresAt } = await createSession(user.id);
+    setSessionCookie(Astro.cookies, token, expiresAt);
+    return Astro.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
+  }
+}
+---
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Masuk</title>
+  </head>
+  <body class="min-h-screen grid place-items-center bg-gray-50 p-4">
+    <form method="POST" class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4">
+      <h1 class="text-2xl font-bold">Masuk</h1>
+      {error && <p class="text-sm text-red-600">{error}</p>}
+
+      <div>
+        <label class="block text-sm font-medium" for="email">Email</label>
+        <input id="email" name="email" type="email" value={email} required class="mt-1 w-full border rounded px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium" for="password">Password</label>
+        <input id="password" name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" />
+      </div>
+
+      <button class="w-full bg-black text-white rounded py-2">Masuk</button>
+      <p class="text-sm text-center">Belum punya akun? <a href="/register" class="underline">Daftar</a></p>
+    </form>
+  </body>
+</html>

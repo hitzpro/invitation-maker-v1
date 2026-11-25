@@ -1,0 +1,110 @@
+---
+import './classic.css';
+import Cover from './sections/Cover.astro';
+import Couple from './sections/Couple.astro';
+import Schedule from './sections/Schedule.astro';
+import Countdown from './sections/Countdown.astro';
+import Story from './sections/Story.astro';
+import Gallery from './sections/Gallery.astro';
+import Venue from './sections/Venue.astro';
+import Rsvp from './sections/Rsvp.astro';
+import Wishes from './sections/Wishes.astro';
+import Closing from './sections/Closing.astro';
+import { PATTERN_KINDS, SURFACES } from '../../lib/content.js';
+import { animateOn, fontAttrs, patternOn, safeColor, visibleSections } from '../../lib/render-data.js';
+import Decorations from './Decorations.astro';
+import Music from './Music.astro';
+
+
+const { invitation, content, images, guestName = '' } = Astro.props;
+
+const registry = {
+  cover: Cover, couple: Couple, event: Schedule, countdown: Countdown, story: Story,
+  gallery: Gallery, location: Venue, rsvp: Rsvp, wishes: Wishes, closing: Closing,
+};
+
+const keys = visibleSections(content, images);
+const props = { invitation, content, images, guestName };
+const CoverSection = keys.includes('cover') ? registry.cover : null;
+
+const { theme } = content;
+const accent = safeColor(theme.primaryColor);
+const patternKind = PATTERN_KINDS.includes(theme.pattern.kind) ? theme.pattern.kind : 'none';
+const patternOpacity = Math.min(40, Math.max(5, Number(theme.pattern.opacity) || 15)) / 100;
+
+// Story dan Gallery menganimasikan itemnya sendiri-sendiri, jadi blok pembungkusnya tidak ikut dianimasikan
+const SELF_REVEAL = new Set(['story', 'gallery']);
+
+const pct = (value, min, max, fallback) => {
+  const n = Number(value);
+  return (Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback) / 100;
+};
+
+const rest = keys
+  .filter((k) => k !== 'cover')
+  .map((key) => {
+    const style = content.sections[key].style ?? {};
+    const bgImage = style.surface === 'image' ? images.get(style.bg?.imageId) : null;
+    const surfaceName = SURFACES.includes(style.surface) ? style.surface : 'plain';
+    const animate = animateOn(theme, style);
+    return {
+      key,
+      Component: registry[key],
+      // "Foto" tanpa foto terpilih jatuh kembali ke polos
+      surface: surfaceName === 'image' && !bgImage ? 'plain' : surfaceName,
+      bg: bgImage
+        ? { url: bgImage.medium, opacity: pct(style.bg.opacity, 10, 100, 1), overlay: pct(style.bg.overlay, 0, 80, 0.4) }
+        : null,
+      pattern: patternOn(theme, style),
+      animate,
+      wrapReveal: animate && !SELF_REVEAL.has(key),
+      fonts: fontAttrs(content.sections[key].fonts),
+      decos: (content.decorations ?? []).filter((d) => d.section === key),
+    };
+  });
+
+const anyAnimate = rest.some((r) => r.animate);
+
+---
+<div class="inv-root min-h-screen bg-stone-200 font-serif text-stone-800"
+  data-pattern-kind={patternKind}
+  style={`--accent: ${accent}; --pattern-opacity: ${patternOpacity}`}>
+  {anyAnimate && <script is:inline>document.documentElement.classList.add('reveal-ready');</script>}
+  <div class="mx-auto max-w-xl bg-[#fbf8f4] shadow-sm">
+    {CoverSection && <CoverSection {...props} />}
+    <div id="content">
+      {rest.map(({ Component, surface, bg, pattern, animate, wrapReveal, fonts, decos }) => (
+        <div class="inv-sec" data-surface={surface} data-pattern={pattern ? '' : undefined} {...fonts}>
+          {bg && (
+            <div class="inv-bg" style={`--bg-opacity: ${bg.opacity}; --bg-overlay: ${bg.overlay}`}>
+              <img src={bg.url} alt="" loading="lazy" decoding="async" />
+            </div>
+          )}
+          <Decorations items={decos} />
+          <div data-reveal-item={wrapReveal ? '' : undefined}>
+            <Component {...props} animate={animate} />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+  <Music {...props} />
+</div>
+
+<script>
+  const items = document.querySelectorAll('[data-reveal-item]');
+  if (items.length && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12 }
+    );
+    items.forEach((el) => observer.observe(el));
+  }
+</script>

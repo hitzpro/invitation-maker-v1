@@ -1,0 +1,36 @@
+---
+import '../styles/global.css';
+import { resolveTemplate } from '../templates/index.js';
+
+const { invitation, content, images, guestName = '', meta = null } = Astro.props;
+const Template = resolveTemplate(invitation.templateKey);
+const hasBanner = Astro.slots.has('banner');
+---
+<html lang="id" class={'scroll-smooth ' + (hasBanner ? 'scroll-pt-10' : '')}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{meta?.title ?? invitation.title}</title>
+
+    {meta && (
+      <>
+        <meta name="description" content={meta.description} />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="id_ID" />
+        <meta property="og:site_name" content="Undangan Digital" />
+        <meta property="og:title" content={meta.title} />
+        <meta property="og:description" content={meta.description} />
+        <meta property="og:url" content={meta.url} />
+        {meta.image && <meta property="og:image" content={meta.image} />}
+        {meta.image && <meta property="og:image:width" content="1200" />}
+        {meta.image && <meta property="og:image:height" content="630" />}
+        <meta name="twitter:card" content={meta.image ? 'summary_large_image' : 'summary'} />
+      </>
+    )}
+  </head>
+  <body>
+    <slot name="banner" />
+    <Template invitation={invitation} content={content} images={images} guestName={guestName} />
+  </body>
+</html>

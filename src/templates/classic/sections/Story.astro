@@ -1,0 +1,21 @@
+---
+import { TIMELINE_STYLES } from '../../../lib/content.js';
+
+const { content, animate } = Astro.props;
+const { items, style } = content.sections.story;
+const timeline = TIMELINE_STYLES.includes(style?.timeline) ? style.timeline : 'line';
+---
+<section id="story" class="px-6 py-16">
+  <h2 class="inv-title text-center text-3xl">Kisah Kami</h2>
+  <ol class={`tl tl-${timeline}`}>
+    {items.map((item, i) => (
+      <li data-reveal-item={animate ? '' : undefined}
+        style={animate ? `--reveal-delay: ${Math.min(i, 6) * 90}ms` : undefined}>
+        <span class="tl-dot inv-dot h-3 w-3 rounded-full"></span>
+        {item.date && <p class="inv-title text-xs uppercase tracking-wider">{item.date}</p>}
+        <h3 class="tl-title">{item.title}</h3>
+        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line">{item.text}</p>
+      </li>
+    ))}
+  </ol>
+</section>

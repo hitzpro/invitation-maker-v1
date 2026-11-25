@@ -1,0 +1,48 @@
+---
+import EField from './EField.astro';
+import { TIMEZONES } from '../../lib/content.js';
+import { MAX_EVENTS } from '../../lib/content-schema.js';
+
+const blank = JSON.stringify({
+  key: '', label: '', date: '', startTime: '', endTime: '', venue: '', address: '',
+});
+---
+<div>
+  <label for="f-event-timezone" class="block text-sm font-medium">Zona waktu</label>
+  <select id="f-event-timezone" data-bind="sections.event.timezone" class="mt-1 rounded border px-3 py-2 text-sm">
+    {Object.entries(TIMEZONES).map(([tz, label]) => <option value={tz}>{label}</option>)}
+  </select>
+  <p class="mt-1 text-sm text-red-600" data-error-for="sections.event.timezone"></p>
+</div>
+
+<div data-list="sections.event.items" data-max={MAX_EVENTS} data-blank={blank} class="space-y-3">
+  <p data-empty class="text-sm text-gray-500">Belum ada acara. Countdown dan Lokasi memerlukan minimal satu acara bertanggal.</p>
+  <div data-items class="space-y-3"></div>
+  <button type="button" data-add-item
+    class="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40">+ Tambah acara</button>
+
+  <template>
+    <div class="space-y-3 rounded border p-3">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium">Acara <span data-item-number></span></p>
+        <button type="button" data-remove-item class="text-sm text-red-600 underline">Hapus</button>
+      </div>
+      <EField path="sections.event.items.__i__.label" label="Nama acara" list="event-labels" maxlength="60"
+        placeholder="Akad Nikah" />
+      <div class="grid grid-cols-3 gap-2">
+        <EField path="sections.event.items.__i__.date" label="Tanggal" type="date" />
+        <EField path="sections.event.items.__i__.startTime" label="Mulai" type="time" />
+        <EField path="sections.event.items.__i__.endTime" label="Selesai" type="time" />
+      </div>
+      <EField path="sections.event.items.__i__.venue" label="Nama tempat" maxlength="120" />
+      <EField path="sections.event.items.__i__.address" label="Alamat" rows="2" maxlength="300" />
+    </div>
+  </template>
+</div>
+
+<datalist id="event-labels">
+  <option value="Akad Nikah"></option>
+  <option value="Resepsi"></option>
+  <option value="Ngunduh Mantu"></option>
+  <option value="Syukuran"></option>
+</datalist>

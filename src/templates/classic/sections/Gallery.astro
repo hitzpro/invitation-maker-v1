@@ -1,0 +1,121 @@
+---
+import { GALLERY_LAYOUTS } from '../../../lib/content.js';
+
+const { content, images, animate } = Astro.props;
+const { imageIds, style } = content.sections.gallery;
+const photos = imageIds.map((id) => images.get(id)).filter(Boolean);
+const layout = GALLERY_LAYOUTS.includes(style?.layout) ? style.layout : 'grid';
+
+const containerClass = {
+  grid: 'grid grid-cols-2 gap-2',
+  carousel: 'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3',
+  masonry: 'columns-2 gap-2',
+  mosaic: 'grid grid-cols-3 auto-rows-[7rem] gap-2',
+}[layout];
+
+const itemClass = (i) =>
+  ({
+    grid: 'block overflow-hidden rounded',
+    carousel: 'block w-[72%] shrink-0 snap-center overflow-hidden rounded',
+    masonry: 'mb-2 block break-inside-avoid overflow-hidden rounded',
+    mosaic: 'block overflow-hidden rounded ' + (i % 5 === 0 ? 'col-span-2 row-span-2' : ''),
+  })[layout];
+
+const imageClass = {
+  grid: 'aspect-square w-full object-cover',
+  carousel: 'aspect-[4/5] w-full object-cover',
+  masonry: 'h-auto w-full',
+  mosaic: 'h-full w-full object-cover',
+}[layout];
+
+// Tile besar mosaik dan carousel memakai versi lebih besar
+const sourceOf = (photo, i) =>
+  layout === 'carousel' || (layout === 'mosaic' && i % 5 === 0) ? photo.medium : photo.thumb;
+---
+<section id="gallery" class="px-6 py-16">
+  <h2 class="inv-title text-center text-3xl">Galeri</h2>
+
+  <div class={`mt-8 ${containerClass}`}>
+    {photos.map((photo, i) => (
+      <button type="button" data-lightbox-open data-full={photo.url} aria-label={`Perbesar foto ${i + 1}`}
+        class={itemClass(i)}
+        data-reveal-item={animate ? '' : undefined}
+        style={animate ? `--reveal-delay: ${Math.min(i, 6) * 90}ms` : undefined}>
+        <img src={sourceOf(photo, i)} width={photo.width} height={photo.height} alt={`Foto galeri ${i + 1}`}
+          loading="lazy" decoding="async" class={imageClass} />
+      </button>
+    ))}
+  </div>
+
+  <dialog data-lightbox
+    class="m-auto max-h-[95vh] max-w-[95vw] border-0 bg-transparent p-0 backdrop:bg-black/85">
+    <div class="relative">
+      <img data-lightbox-img alt="" class="max-h-[90vh] max-w-[95vw] object-contain" />
+      <button type="button" data-lightbox-close aria-label="Tutup"
+        class="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl text-white">✕</button>
+      <button type="button" data-lightbox-prev aria-label="Foto sebelumnya"
+        class="absolute left-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white">‹</button>
+      <button type="button" data-lightbox-next aria-label="Foto berikutnya"
+        class="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white">›</button>
+    </div>
+  </dialog>
+</section>
+
+<script>
+  const section = document.getElementById('gallery');
+  if (section) {
+    const dialog = section.querySelector('[data-lightbox]');
+    const bigImg = dialog.querySelector('[data-lightbox-img]');
+    const openers = [...section.querySelectorAll('[data-lightbox-open]')];
+    const prev = dialog.querySelector('[data-lightbox-prev]');
+    const next = dialog.querySelector('[data-lightbox-next]');
+    let index = 0;
+
+    if (openers.length < 2) {
+      prev.classList.add('hidden');
+      next.classList.add('hidden');
+    }
+
+    const show = (i) => {
+      index = (i + openers.length) % openers.length;
+      bigImg.src = openers[index].dataset.full;
+      bigImg.alt = openers[index].querySelector('img').alt;
+    };
+
+    openers.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        show(i);
+        document.documentElement.style.overflow = 'hidden'; // kunci scroll halaman
+        dialog.showModal();
+      });
+    });
+
+    dialog.addEventListener('close', () => {
+      document.documentElement.style.overflow = '';
+    });
+    dialog.querySelector('[data-lightbox-close]').addEventListener('click', () => dialog.close());
+    prev.addEventListener('click', () => show(index - 1));
+    next.addEventListener('click', () => show(index + 1));
+
+    // klik latar (di luar gambar) menutup
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+
+    dialog.addEventListener('keydown', (e) => {
+      if (openers.length < 2) return;
+      if (e.key === 'ArrowLeft') show(index - 1);
+      if (e.key === 'ArrowRight') show(index + 1);
+    });
+
+    // geser kiri/kanan di layar sentuh
+    let startX = null;
+    dialog.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+    dialog.addEventListener('touchend', (e) => {
+      if (startX === null || openers.length < 2) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+      startX = null;
+    });
+  }
+</script>

@@ -1,0 +1,305 @@
+@import '../../styles/patterns.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource/great-vibes/400.css';
+
+/* ---------- Pembungkus section: latar, pola, animasi ---------- */
+.inv-sec {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  --sec-title: var(--accent);
+  --sec-muted: #57534e;
+  --sec-line: var(--accent);
+  --sec-btn-bg: var(--accent);
+  --sec-btn-fg: #fff;
+  --pattern-color: var(--accent);
+}
+
+.inv-sec[data-surface='white'] {
+  background: #fff;
+}
+.inv-sec[data-surface='tint'] {
+  background: color-mix(in srgb, var(--accent) 9%, #fbf8f4);
+}
+.inv-sec[data-surface='solid'] {
+  background: var(--accent);
+  color: #fff;
+
+  --sec-title: #fff;
+  --sec-muted: rgba(255, 255, 255, 0.82);
+  --sec-line: rgba(255, 255, 255, 0.7);
+  --sec-btn-bg: #fff;
+  --sec-btn-fg: var(--accent);
+  --pattern-color: #fff;
+}
+
+/* Kelas semantik: warnanya menyesuaikan latar section */
+.inv-title { color: var(--sec-title); }
+.inv-muted { color: var(--sec-muted); }
+.inv-line { border-color: var(--sec-line); }
+.inv-dot { background-color: var(--sec-line); }
+.inv-btn { background-color: var(--sec-btn-bg); color: var(--sec-btn-fg); }
+.inv-chip { background-color: color-mix(in srgb, var(--sec-title) 12%, transparent); }
+
+/* Lapisan pola di belakang konten */
+.inv-sec[data-pattern]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--pattern-color);
+  opacity: var(--pattern-opacity, 0.15);
+  -webkit-mask-image: var(--pattern-img);
+  mask-image: var(--pattern-img);
+  -webkit-mask-size: 120px 120px;
+  mask-size: 120px 120px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+}
+
+/* ---------- Animasi fade-in saat digulir ---------- */
+[data-reveal-item] {
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal-ready [data-reveal-item]:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-item] { transition: opacity 0.5s ease; }
+  .reveal-ready [data-reveal-item]:not(.is-visible) { transform: none; }
+}
+
+/* ---------- Cover ---------- */
+.cover {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  color: #fff;
+  text-align: center;
+}
+.cover-media img,
+.cover-media .cover-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-fallback { background: var(--accent); }
+
+.cover[data-layout='centered'] { place-items: center; overflow: hidden; }
+.cover[data-layout='centered'] .cover-media { position: absolute; inset: 0; }
+.cover[data-layout='centered'] .cover-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+.cover[data-layout='centered'] .cover-body { position: relative; padding: 4rem 1.5rem; }
+
+.cover[data-layout='split'] { grid-template-rows: minmax(55vh, 1fr) auto; }
+.cover[data-layout='split'] .cover-media { position: relative; }
+.cover[data-layout='split'] .cover-fallback { background: color-mix(in srgb, var(--accent) 35%, #fff); }
+.cover[data-layout='split'] .cover-body { background: var(--accent); padding: 3rem 1.5rem; }
+
+/* ---------- Bingkai foto mempelai ---------- */
+.inv-root {
+  --heart-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 90C12 62 2 38 18 20C32 6 46 14 50 28C54 14 68 6 82 20C98 38 88 62 50 90Z'/%3E%3C/svg%3E");
+}
+
+.frame {
+  --frame-size: 10rem;
+  width: var(--frame-size);
+  height: var(--frame-size);
+  margin-inline: auto;
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--sec-line);
+  overflow: hidden;
+}
+[data-layout='split'] .frame { --frame-size: 7rem; }
+.frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.frame-circle,
+.frame-circle img { border-radius: 9999px; }
+
+.frame-rounded,
+.frame-rounded img { border-radius: 1.5rem; }
+
+.frame-arch { height: calc(var(--frame-size) * 1.3); }
+.frame-arch,
+.frame-arch img { border-radius: 9999px 9999px 0 0; }
+
+.frame-oval { width: calc(var(--frame-size) * 0.9); height: calc(var(--frame-size) * 1.3); }
+.frame-oval,
+.frame-oval img { border-radius: 50%; }
+
+.frame-hexagon,
+.frame-hexagon img { clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+
+.frame-heart,
+.frame-heart img {
+  -webkit-mask: var(--heart-mask) center / contain no-repeat;
+  mask: var(--heart-mask) center / contain no-repeat;
+}
+
+/* ---------- Timeline Kisah Kami ---------- */
+.tl { margin-top: 2.5rem; }
+.tl > li { position: relative; }
+.tl-title { font-size: 1.25rem; }
+
+.tl-line { border-left: 2px solid var(--sec-line); padding-left: 1.5rem; }
+.tl-line > li + li { margin-top: 2rem; }
+.tl-line .tl-dot { position: absolute; left: -31px; top: 0.25rem; }
+
+.tl-alternate { position: relative; }
+.tl-alternate::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--sec-line);
+}
+.tl-alternate > li { width: 50%; padding: 0 1.25rem; }
+.tl-alternate > li + li { margin-top: 2rem; }
+.tl-alternate > li:nth-child(odd) { margin-right: auto; text-align: right; }
+.tl-alternate > li:nth-child(even) { margin-left: auto; text-align: left; }
+.tl-alternate .tl-dot { position: absolute; top: 0.25rem; }
+.tl-alternate > li:nth-child(odd) .tl-dot { right: -6px; }
+.tl-alternate > li:nth-child(even) .tl-dot { left: -6px; }
+
+.tl-cards > li {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid var(--accent);
+  background: #fff;
+  color: #292524;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.tl-cards > li + li { margin-top: 1rem; }
+.tl-cards .inv-title { color: var(--accent); }
+.tl-cards .tl-dot { display: none; }
+
+.tl-minimal { text-align: center; }
+.tl-minimal > li + li { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--sec-line); }
+.tl-minimal .tl-dot { display: none; }
+
+/* ---------- Font per peran: title (h2), heading (h1/h3), body (p) ---------- */
+.inv-root {
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-script: 'Great Vibes', cursive;
+}
+
+[data-t-font='sans'] :is(h2, .fx-t),
+[data-h-font='sans'] :is(h1, h3, .fx-h),
+[data-b-font='sans'] p:not(.fx-t, .fx-h) { font-family: var(--font-sans); }
+
+[data-t-font='script'] :is(h2, .fx-t),
+[data-h-font='script'] :is(h1, h3, .fx-h),
+[data-b-font='script'] p:not(.fx-t, .fx-h) { font-family: var(--font-script); font-weight: 400; font-style: normal; }
+
+[data-t-bold] :is(h2, .fx-t),
+[data-h-bold] :is(h1, h3, .fx-h),
+[data-b-bold] p:not(.fx-t, .fx-h) { font-weight: 700; }
+
+[data-t-italic] :is(h2, .fx-t),
+[data-h-italic] :is(h1, h3, .fx-h),
+[data-b-italic] p:not(.fx-t, .fx-h) { font-style: italic; }
+
+/* ---------- Hiasan dekoratif ---------- */
+.cover { overflow: hidden; }
+
+.orn {
+  position: absolute;
+  z-index: -1;
+  width: var(--orn-w, 7rem);
+  height: auto;
+  color: var(--sec-title);
+  pointer-events: none;
+}
+.orn[data-size='sm'] { --orn-w: 4.5rem; }
+.orn[data-size='md'] { --orn-w: 7rem; }
+.orn[data-size='lg'] { --orn-w: 10rem; }
+.orn[data-kind='divider'][data-size='sm'] { --orn-w: 8rem; }
+.orn[data-kind='divider'][data-size='md'] { --orn-w: 12rem; }
+.orn[data-kind='divider'][data-size='lg'] { --orn-w: 16rem; }
+
+.orn[data-pos='top-left'] { top: 0.75rem; left: 0.75rem; }
+.orn[data-pos='top-center'] { top: 0.75rem; left: 50%; translate: -50% 0; }
+.orn[data-pos='top-right'] { top: 0.75rem; right: 0.75rem; }
+.orn[data-pos='bottom-left'] { bottom: 0.75rem; left: 0.75rem; }
+.orn[data-pos='bottom-center'] { bottom: 0.75rem; left: 50%; translate: -50% 0; }
+.orn[data-pos='bottom-right'] { bottom: 0.75rem; right: 0.75rem; }
+
+/* Di cover, hiasan berada di atas foto dan selalu putih */
+.cover .orn { z-index: 1; color: #fff; }
+
+/* ---------- Tombol musik ---------- */
+.music-btn {
+  position: fixed;
+  bottom: 1rem;
+  right: max(1rem, calc((100vw - 36rem) / 2 + 1rem));
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.music-btn svg { width: 1.25rem; height: 1.25rem; }
+.music-btn[data-state='playing'] [data-icon='play'],
+.music-btn:not([data-state='playing']) [data-icon='pause'] { display: none; }
+
+
+/* ---------- Latar section berupa foto ---------- */
+.inv-sec[data-surface='image'] {
+  background: #000;
+  color: #fff;
+  --sec-title: #fff;
+  --sec-muted: rgba(255, 255, 255, 0.85);
+  --sec-line: rgba(255, 255, 255, 0.7);
+  --sec-btn-bg: #fff;
+  --sec-btn-fg: #1c1917;
+  --pattern-color: #fff;
+}
+.inv-bg { position: absolute; inset: 0; z-index: -2; }
+.inv-bg img { width: 100%; height: 100%; object-fit: cover; opacity: var(--bg-opacity, 1); }
+.inv-bg::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, var(--bg-overlay, 0.4)); }
+
+/* Bayangan tipis agar teks kontras di atas foto; kartu putih tidak diberi bayangan */
+.inv-sec[data-surface='image'] :is(h1, h2, h3, p, li) { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.inv-sec[data-surface='image'] .bg-white,
+.inv-sec[data-surface='image'] .bg-white *,
+.inv-sec[data-surface='image'] .tl-cards > li,
+.inv-sec[data-surface='image'] .tl-cards > li * { text-shadow: none; }
+
+/* ---------- Cover slideshow ---------- */
+.cover-media { overflow: hidden; isolation: isolate; }
+.cover-slide { opacity: 0; transition: opacity 1.2s ease; }
+.cover-slide.is-active { opacity: 1; z-index: 1; }
+.cover-slide.is-leaving { z-index: 0; }
+.cover-media:not([data-slideshow]) .cover-slide { opacity: 1; }
+.cover[data-layout='centered'] .cover-media::after { z-index: 2; }
+
+.cover-media[data-slideshow][data-zoom] :is(.cover-slide.is-active, .cover-slide.is-leaving) {
+  animation: cover-zoom calc(var(--slide-interval) + 1.5s) ease-out forwards;
+}
+@keyframes cover-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-media[data-slideshow][data-zoom] .cover-slide { animation: none; }
+}

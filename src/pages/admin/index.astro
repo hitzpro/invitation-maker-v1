@@ -1,0 +1,26 @@
+---
+import '../../styles/global.css';
+import { count } from 'drizzle-orm';
+import { db } from '../../db/index.js';
+import { users, invitations } from '../../db/schema.js';
+
+const user = Astro.locals.user;
+const [{ value: userCount }] = await db.select({ value: count() }).from(users);
+const [{ value: invitationCount }] = await db.select({ value: count() }).from(invitations);
+---
+<html lang="id">
+  <head><meta charset="utf-8" /><title>Admin</title></head>
+  <body class="p-8">
+    <h1 class="text-2xl font-bold">Panel Admin</h1>
+    <p class="text-sm">Masuk sebagai {user.name} ({user.role})</p>
+
+    <div class="mt-6 grid grid-cols-2 gap-4 max-w-md">
+      <div class="border rounded p-4"><p class="text-sm">Pengguna</p><p class="text-3xl font-bold">{userCount}</p></div>
+      <div class="border rounded p-4"><p class="text-sm">Undangan</p><p class="text-3xl font-bold">{invitationCount}</p></div>
+    </div>
+
+    <form method="POST" action="/api/logout" class="mt-6">
+      <button class="border rounded px-4 py-2">Keluar</button>
+    </form>
+  </body>
+</html>

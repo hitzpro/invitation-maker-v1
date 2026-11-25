@@ -1,0 +1,81 @@
+---
+const COLORS = [
+  ['Cokelat', '#8b5e3c'],
+  ['Hijau sage', '#5f7a61'],
+  ['Biru dusty', '#4a6785'],
+  ['Rose', '#b5586b'],
+  ['Arang', '#3a3a3a'],
+  ['Emas', '#a8873a'],
+];
+
+const PATTERNS = [
+  ['none', 'Tanpa pola'],
+  ['floral', 'Bunga'],
+  ['leaf', 'Daun'],
+  ['kawung', 'Kawung (batik)'],
+  ['dots', 'Titik'],
+  ['waves', 'Gelombang'],
+];
+---
+<div class="space-y-6">
+  <div>
+    <label for="f-theme-color" class="block text-sm font-medium">Warna utama</label>
+    <div class="mt-1 flex flex-wrap items-center gap-2">
+      <input id="f-theme-color" type="color" data-bind="theme.primaryColor"
+        class="h-9 w-14 cursor-pointer rounded border p-0.5" />
+      {COLORS.map(([name, value]) => (
+        <button type="button" data-color-preset={value} title={name} aria-label={name}
+          class="h-7 w-7 rounded-full border" style={`background:${value}`}></button>
+      ))}
+    </div>
+    <p class="mt-1 text-xs text-gray-500">
+      Dipakai untuk judul, garis, tombol, dan pola. Warna yang terlalu terang ditolak agar teks putih tetap terbaca.
+    </p>
+    <p class="mt-1 text-sm text-red-600" data-error-for="theme.primaryColor"></p>
+  </div>
+
+  <div class="space-y-2">
+    <p class="text-sm font-medium">Pola latar</p>
+    <div class="flex flex-wrap gap-2">
+      {PATTERNS.map(([kind, label]) => (
+        <button type="button" data-pattern-pick={kind} title={label} aria-label={label}
+          class="h-14 w-14 overflow-hidden rounded border bg-stone-50 p-0.5">
+          {kind === 'none' ? (
+            <span class="grid h-full place-items-center text-xs text-gray-400">Tanpa</span>
+          ) : (
+            <span class="pattern-preview" data-pattern-kind={kind}></span>
+          )}
+        </button>
+      ))}
+    </div>
+
+    <div>
+      <label for="f-pattern-opacity" class="block text-xs text-gray-600">Ketebalan pola</label>
+      <input id="f-pattern-opacity" type="range" min="5" max="40" step="1"
+        data-bind="theme.pattern.opacity" data-type="number" class="w-full" />
+      <p class="text-sm text-red-600" data-error-for="theme.pattern.opacity"></p>
+    </div>
+
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" data-bind="theme.pattern.all" /> Terapkan ke semua section
+    </label>
+    <p class="text-xs text-gray-500">
+      Bila dimatikan, pilih section mana saja yang berpola lewat "Gaya section" di tiap section.
+      Warna pola mengikuti warna utama.
+    </p>
+    <p class="text-sm text-red-600" data-error-for="theme.pattern.kind"></p>
+  </div>
+
+  <div class="space-y-2">
+    <p class="text-sm font-medium">Animasi</p>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" data-bind="theme.animation.enabled" /> Aktifkan animasi fade-in saat digulir
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <input type="checkbox" data-bind="theme.animation.all" /> Terapkan ke semua section
+    </label>
+    <p class="text-xs text-gray-500">
+      Bawaan: mati. Animasi otomatis tidak dijalankan untuk pengunjung yang memilih "kurangi gerakan" di perangkatnya.
+    </p>
+  </div>
+</div>

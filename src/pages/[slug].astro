@@ -1,0 +1,29 @@
+---
+import { and, eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { invitations } from '../db/schema.js';
+import InvitationShell from '../layouts/InvitationShell.astro';
+import { env } from '../lib/env.js';
+import { SLUG_RE } from '../lib/slug.js';
+import { buildShareMeta, getRenderData, guestNameFrom } from '../lib/render-data.js';
+
+const { slug } = Astro.params;
+if (!slug || !SLUG_RE.test(slug)) return Astro.rewrite('/404');
+
+// Hanya undangan published dan tidak dinonaktifkan
+const [inv] = await db
+  .select()
+  .from(invitations)
+  .where(and(eq(invitations.slug, slug), eq(invitations.status, 'published'), eq(invitations.isDisabled, false)))
+  .limit(1);
+
+if (!inv) return Astro.rewrite('/404');
+
+const { content, images } = await getRenderData(inv.id);
+const guestName = guestNameFrom(Astro.url);
+
+// APP_URL menjadi acuan URL absolut (penting bila aplikasi berada di belakang reverse proxy)
+const baseUrl = (env('APP_URL') ?? Astro.url.origin).replace(/\/$/, '');
+const meta = buildShareMeta(inv, content, images, baseUrl);
+---
+<InvitationShell invitation={inv} content={content} images={images} guestName={guestName} meta={meta} />

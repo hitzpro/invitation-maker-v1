@@ -1,0 +1,81 @@
+---
+import Decorations from '../Decorations.astro';
+import { fontAttrs, formatDate, sortedEvents } from '../../../lib/render-data.js';
+
+const { invitation, content, images, guestName } = Astro.props;
+const { cover, couple } = content.sections;
+const decos = (content.decorations ?? []).filter((d) => d.section === 'cover');
+
+const layout = cover.style?.layout === 'split' ? 'split' : 'centered';
+
+// Foto utama + foto tambahan (tanpa duplikat); lebih dari satu = slideshow
+const slides = [...new Set([cover.imageId, ...(cover.extraImageIds ?? [])])]
+  .map((id) => images.get(id))
+  .filter((img) => img && !img.audio);
+const interval = Math.min(15, Math.max(3, Number(cover.slideshow?.interval) || 5));
+const zoom = cover.slideshow?.zoom !== false;
+
+const first = sortedEvents(content)[0];
+const bride = couple.bride.name;
+const groom = couple.groom.name;
+---
+<section id="cover" class="cover" data-layout={layout} {...fontAttrs(cover.fonts)}>
+  <Decorations items={decos} />
+
+  <div class="cover-media" data-slideshow={slides.length > 1 ? '' : undefined}
+    data-interval={interval} data-zoom={zoom ? '' : undefined} style={`--slide-interval: ${interval}s`}>
+    {slides.length > 0 ? (
+      slides.map((img, i) => (
+        <img data-slide class={'cover-slide' + (i === 0 ? ' is-active' : '')} src={img.medium}
+          width={img.width} height={img.height} alt=""
+          fetchpriority={i === 0 ? 'high' : undefined} loading={i === 0 ? undefined : 'lazy'} />
+      ))
+    ) : (
+      <div class="cover-fallback"></div>
+    )}
+  </div>
+
+  <div class="cover-body">
+    <p class="fx-t text-xs uppercase tracking-[0.3em]">{cover.heading}</p>
+    {bride && groom ? (
+      <h1 class="mt-4 text-4xl leading-tight break-words sm:text-5xl">
+        {bride}<span class="my-1 block text-3xl">&amp;</span>{groom}
+      </h1>
+    ) : (
+      <h1 class="mt-4 text-4xl leading-tight break-words">{invitation.title}</h1>
+    )}
+    {first && <p class="mt-6 text-sm">{formatDate(first.date)}</p>}
+
+    {guestName && (
+      <div class="mt-8 text-sm">
+        <p>Kepada Yth.</p>
+        <p class="mt-1 text-lg font-semibold">{guestName}</p>
+      </div>
+    )}
+
+    <a href="#content" class="mt-8 inline-block rounded-full border border-white px-6 py-3 text-sm">
+      Buka Undangan
+    </a>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll('[data-slideshow]').forEach((media) => {
+    const slides = [...media.querySelectorAll('[data-slide]')];
+    if (slides.length < 2) return;
+
+    const interval = Number(media.dataset.interval) * 1000;
+    let index = 0;
+
+    setInterval(() => {
+      const previous = slides[index];
+      index = (index + 1) % slides.length;
+
+      // slide lama tetap melanjutkan zoom-nya selama memudar (is-leaving), supaya tidak melompat
+      previous.classList.remove('is-active');
+      previous.classList.add('is-leaving');
+      slides[index].classList.add('is-active');
+      setTimeout(() => previous.classList.remove('is-leaving'), 1400);
+    }, interval);
+  });
+</script>
