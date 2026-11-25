@@ -1,7 +1,7 @@
 ---
 import { formatDate, formatTime, sortedEvents } from '../../../lib/render-data.js';
 
-const { content } = Astro.props;
+const { content, invitation } = Astro.props;
 const timezone = content.sections.event.timezone;
 const layout = content.sections.event.style?.layout === 'split' ? 'split' : 'centered';
 const events = sortedEvents(content);
@@ -21,6 +21,13 @@ const split = layout === 'split';
         <p class="text-sm text-stone-600">{formatTime(ev, timezone)}</p>
         {ev.venue && <p class="fx-h mt-4 font-semibold">{ev.venue}</p>}
         {ev.address && <p class="text-sm text-stone-600 whitespace-pre-line">{ev.address}</p>}
+
+        {invitation.status === 'published' && !invitation.isDisabled && (
+          <a href={`/api/public/${invitation.slug}/calendar.ics?i=${events.indexOf(ev)}`}
+            class="mt-4 inline-block rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-700 hover:bg-stone-50">
+            + Simpan ke Kalender
+          </a>
+        )}
       </article>
     ))}
   </div>

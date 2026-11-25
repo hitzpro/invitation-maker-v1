@@ -1,9 +1,12 @@
 ---
 import AppLayout from '../../../layouts/AppLayout.astro';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
+import { db } from '../../../db/index.js';
+import { guestMessages, rsvps } from '../../../db/schema.js';
 import { env } from '../../../lib/env.js';
 import {
-  getOwnedInvitation, updateOwnedInvitation, deleteOwnedInvitation, isUniqueViolation, listAssets,
+  getOwnedInvitation, updateOwnedInvitation, deleteOwnedInvitation, isUniqueViolation, listAssets, duplicateOwnedInvitation
 } from '../../../lib/invitations.js';
 import { isSlugTaken, validateSlug } from '../../../lib/slug.js';
 import { MAX_ASSETS_PER_INVITATION } from '../../../lib/upload.js';
@@ -84,10 +87,23 @@ if (Astro.request.method === 'POST') {
     }
     return Astro.redirect(`/dashboard/invitations/${id}?saved=unpublished`);
   }
+
+  if (action === 'duplicate') {
+    const copy = await duplicateOwnedInvitation(id, user.id);
+    if (copy) return Astro.redirect(`/dashboard/invitations/${copy.id}`);
+  }
 }
 
 const assets = await listAssets(inv.id);
 const tracks = await listAssets(inv.id, 'audio');
+
+const [rsvpSummaryRows, wishSummaryRows] = await Promise.all([
+  db.select({ attendance: rsvps.attendance, guestCount: rsvps.guestCount })
+    .from(rsvps).where(eq(rsvps.invitationId, inv.id)),
+  db.select({ id: guestMessages.id }).from(guestMessages).where(eq(guestMessages.invitationId, inv.id)),
+]);
+const hadirCount = rsvpSummaryRows.filter((r) => r.attendance === 'hadir').length;
+const totalGuests = rsvpSummaryRows.reduce((n, r) => n + (r.attendance === 'hadir' ? r.guestCount : 0), 0);
 
 const savedMessages = {
   title: 'Judul tersimpan.',
@@ -117,10 +133,16 @@ const methodLabel = { automatic: 'Automatic', manual: 'Manual' };
         {isPublished ? 'Published' : 'Draft'}
       </span>
     </div>
+    <form method="POST" class="mt-3">
+      <input type="hidden" name="_action" value="duplicate" />
+      <button class="border rounded px-4 py-2 text-sm hover:bg-gray-100">Duplikat undangan</button>
+    </form>
   </div>
 
   {savedMessage && <p class="mt-4 text-sm bg-green-50 text-green-700 border border-green-200 rounded px-3 py-2">{savedMessage}</p>}
   {inv.isDisabled && <p class="mt-4 text-sm bg-red-50 text-red-700 border border-red-200 rounded px-3 py-2">Undangan ini dinonaktifkan oleh administrator.</p>}
+
+
 
   <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
     <h2 class="font-semibold mb-3">Informasi dasar</h2>
@@ -202,6 +224,24 @@ const methodLabel = { automatic: 'Automatic', manual: 'Manual' };
       </div>
     )}
     {errors.publish && <p class="text-sm text-red-600 mt-2">{errors.publish}</p>}
+  </section>
+
+  <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">
+    <h2 class="font-semibold">Tamu &amp; Ucapan</h2>
+    <p class="mt-1 text-sm text-gray-600">
+      {hadirCount} konfirmasi hadir ({totalGuests} tamu) · {wishSummaryRows.length} ucapan.
+    </p>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <a href={`/dashboard/invitations/${inv.id}/guests`} class="bg-black text-white rounded px-4 py-2 text-sm">
+        Lihat RSVP &amp; Ucapan
+      </a>
+      <a href={`/api/invitations/${inv.id}/guests.csv`} class="border rounded px-4 py-2 text-sm hover:bg-gray-100">
+        Ekspor CSV
+      </a>
+      <a href={`/dashboard/invitations/${inv.id}/share`} class="border rounded px-4 py-2 text-sm hover:bg-gray-100">
+        Daftar Tamu &amp; WA
+      </a>
+    </div>
   </section>
 
   <section class="mt-6 bg-white border rounded-lg p-6 max-w-xl">

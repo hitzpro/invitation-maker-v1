@@ -7,6 +7,7 @@ const { couple } = content.sections;
 const layout = couple.style?.layout === 'split' ? 'split' : 'centered';
 const frame = FRAMES.includes(couple.style?.frame) ? couple.style.frame : 'circle';
 
+const clampPct = (v) => Math.min(100, Math.max(0, Math.round(Number(v) || 50)));
 const people = [
   { person: couple.bride, label: 'Putri dari', image: images.get(couple.bride.photoId) },
   { person: couple.groom, label: 'Putra dari', image: images.get(couple.groom.photoId) },
@@ -22,10 +23,13 @@ const people = [
         {layout === 'centered' && i === 1 && <p class="fx-h inv-title text-4xl">&amp;</p>}
         <article>
           {image && (
-            <div class={`frame frame-${frame}`}>
+            <button type="button" data-couple-zoom={image.url} data-couple-name={person.fullName || person.name}
+              aria-label={`Perbesar foto ${person.name}`}
+              class={`frame frame-${frame} frame-interactive block cursor-zoom-in`}>
               <img src={image.thumb} width={image.width} height={image.height} alt={person.name}
+                style={`object-position: ${clampPct(person.photoPos?.x)}% ${clampPct(person.photoPos?.y)}%`}
                 loading="lazy" decoding="async" />
-            </div>
+            </button>
           )}
           <h3 class={'mt-4 ' + (layout === 'split' ? 'text-xl' : 'text-2xl')}>{person.fullName}</h3>
           {person.parents && <p class="inv-muted mt-1 text-sm">{label} {person.parents}</p>}
@@ -34,3 +38,29 @@ const people = [
     ))}
   </div>
 </section>
+
+<dialog data-couple-dialog class="m-auto max-h-[92vh] max-w-[92vw] border-0 bg-transparent p-0 backdrop:bg-black/85">
+  <div class="relative">
+    <img data-couple-dialog-img alt="" class="max-h-[88vh] max-w-[92vw] rounded object-contain" />
+    <button type="button" data-couple-dialog-close aria-label="Tutup"
+      class="absolute right-2 top-2 h-9 w-9 rounded-full bg-black/60 text-lg text-white">✕</button>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.querySelector('[data-couple-dialog]');
+  const dialogImg = dialog?.querySelector('[data-couple-dialog-img]');
+  if (dialog && dialogImg) {
+    document.querySelectorAll('[data-couple-zoom]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        dialogImg.src = btn.dataset.coupleZoom;
+        dialogImg.alt = btn.dataset.coupleName || '';
+        document.documentElement.style.overflow = 'hidden';
+        dialog.showModal();
+      });
+    });
+    dialog.addEventListener('close', () => { document.documentElement.style.overflow = ''; });
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
+    dialog.querySelector('[data-couple-dialog-close]')?.addEventListener('click', () => dialog.close());
+  }
+</script>

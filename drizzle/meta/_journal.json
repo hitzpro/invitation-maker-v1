@@ -8,6 +8,13 @@
       "when": 1795407651748,
       "tag": "0000_woozy_shen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795577767675,
+      "tag": "0001_fresh_nicolaos",
+      "breakpoints": true
     }
   ]
 }

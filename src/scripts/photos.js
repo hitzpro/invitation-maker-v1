@@ -237,4 +237,21 @@ export function initPhotos({ store, invitationId, assets }) {
 
     render();
   });
+  // ---------- Pratinjau posisi foto mempelai ----------
+  document.querySelectorAll('[data-photo-pos]').forEach((box) => {
+    const prefix = box.dataset.photoPos;
+    const field = box.parentElement?.querySelector(`[data-photo-field="${prefix}.photoId"]`);
+    const thumb = field?.querySelector('[data-photo-thumb]');
+    if (!thumb) return;
+
+    const syncPos = () => {
+      const x = store.get(`${prefix}.photoPos.x`) ?? 50;
+      const y = store.get(`${prefix}.photoPos.y`) ?? 50;
+      thumb.style.objectPosition = `${x}% ${y}%`;
+    };
+    box.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', syncPos));
+    syncPos();
+  });
+
+
 }

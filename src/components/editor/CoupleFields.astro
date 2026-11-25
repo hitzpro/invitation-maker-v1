@@ -8,6 +8,16 @@ import PhotoField from './PhotoField.astro';
 <fieldset class="space-y-3 rounded border p-3">
   <legend class="px-1 text-sm font-medium">Mempelai wanita</legend>
   <PhotoField path="sections.couple.bride.photoId" label="Foto mempelai wanita" />
+  <div class="grid grid-cols-2 gap-2 rounded bg-gray-50 p-2" data-photo-pos="sections.couple.bride">
+    <label class="block text-xs text-gray-600">Posisi horizontal
+      <input type="range" min="0" max="100" step="1"
+        data-bind="sections.couple.bride.photoPos.x" data-type="number" class="mt-1 w-full" />
+    </label>
+    <label class="block text-xs text-gray-600">Posisi vertikal
+      <input type="range" min="0" max="100" step="1"
+        data-bind="sections.couple.bride.photoPos.y" data-type="number" class="mt-1 w-full" />
+    </label>
+  </div>
   <EField path="sections.couple.bride.name" label="Nama panggilan" maxlength="40" />
   <EField path="sections.couple.bride.fullName" label="Nama lengkap" maxlength="100" />
   <EField path="sections.couple.bride.parents" label="Putri dari (orang tua)" maxlength="200"
@@ -17,6 +27,16 @@ import PhotoField from './PhotoField.astro';
 <fieldset class="space-y-3 rounded border p-3">
   <legend class="px-1 text-sm font-medium">Mempelai pria</legend>
   <PhotoField path="sections.couple.groom.photoId" label="Foto mempelai pria" />
+  <div class="grid grid-cols-2 gap-2 rounded bg-gray-50 p-2" data-photo-pos="sections.couple.bride">
+    <label class="block text-xs text-gray-600">Posisi horizontal
+      <input type="range" min="0" max="100" step="1"
+        data-bind="sections.couple.bride.photoPos.x" data-type="number" class="mt-1 w-full" />
+    </label>
+    <label class="block text-xs text-gray-600">Posisi vertikal
+      <input type="range" min="0" max="100" step="1"
+        data-bind="sections.couple.bride.photoPos.y" data-type="number" class="mt-1 w-full" />
+    </label>
+  </div>
   <EField path="sections.couple.groom.name" label="Nama panggilan" maxlength="40" />
   <EField path="sections.couple.groom.fullName" label="Nama lengkap" maxlength="100" />
   <EField path="sections.couple.groom.parents" label="Putra dari (orang tua)" maxlength="200"

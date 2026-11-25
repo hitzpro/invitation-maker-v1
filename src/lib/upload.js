@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import { mkdir, writeFile, unlink, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import { env } from './env.js';
+import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
 
 export const ALLOWED_MIME = new Set(['image/jpeg', 'image/png']);
 export const MAX_ASSETS_PER_INVITATION = 30;
@@ -78,7 +79,7 @@ export async function removeFiles(filenames) {
   const dir = getUploadDir();
   await Promise.all(
     filenames
-      .filter((name) => FILENAME_RE.test(name) || AUDIO_FILENAME_RE.test(name))
+      .filter((name) => FILENAME_RE.test(name) || AUDIO_FILENAME_RE.test(name) || SVG_FILENAME_RE.test(name))
       .map((name) => unlink(path.join(dir, name)).catch(() => {}))
   );
 }
@@ -121,4 +122,82 @@ export async function processAudioUpload(file) {
   await writeFile(path.join(dir, filename), buf, { flag: 'wx' });
 
   return { filename, mimeType: type.mime, sizeBytes: buf.length };
+}
+
+export const SVG_FILENAME_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.svg$/;
+export const MAX_SVG_PER_INVITATION = 10;
+const MAX_SVG_BYTES = 256 * 1024;
+
+// Sanitasi SVG untuk mencegah XSS (buang script, event handler, foreignObject, style, URL eksternal)
+export function sanitizeSvg(raw) {
+  const cleaned = raw
+    .replace(/<\?[\s\S]*?\?>/g, '')
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|foreignObject|iframe|object|embed|style|animate\w*|set)\b[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(script|foreignObject|iframe|object|embed|style|animate\w*|set)\b[^>]*\/?>/gi, '');
+
+  const match = /<svg\b([^>]*)>([\s\S]*?)<\/svg>/i.exec(cleaned);
+  if (!match) return null;
+
+  const [, attrs, rawBody] = match;
+  const vbMatch = /\bviewBox\s*=\s*["']([^"']+)["']/i.exec(attrs);
+  const wMatch = /\bwidth\s*=\s*["']([\d.]+)/i.exec(attrs);
+  const hMatch = /\bheight\s*=\s*["']([\d.]+)/i.exec(attrs);
+  const viewBox = vbMatch
+    ? vbMatch[1].trim()
+    : `0 0 ${Number(wMatch?.[1]) || 100} ${Number(hMatch?.[1]) || 100}`;
+
+  if (!/^-?[\d.]+\s+-?[\d.]+\s+[\d.]+\s+[\d.]+$/.test(viewBox)) return null;
+
+  const safeBody = rawBody
+    .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s(?:xlink:)?href\s*=\s*["'](?!#)[^"']*["']/gi, '')
+    .replace(/javascript\s*:/gi, '');
+
+  return {
+    viewBox,
+    body: safeBody.trim(),
+    svgText: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${safeBody.trim()}</svg>`,
+  };
+}
+
+export async function processSvgUpload(file) {
+  if (!(file instanceof File) || file.size === 0) throw new UploadError('File tidak ditemukan');
+  if (file.size > MAX_SVG_BYTES) throw new UploadError('Ukuran file SVG maksimal 256 KB', 413);
+  if (file.type !== 'image/svg+xml' && !file.name.toLowerCase().endsWith('.svg')) {
+    throw new UploadError('Format harus SVG', 415);
+  }
+
+  const text = await file.text();
+  const parsed = sanitizeSvg(text);
+  if (!parsed || !parsed.body) throw new UploadError('File SVG tidak valid atau kosong', 422);
+
+  const filename = `${randomUUID()}.svg`;
+  const dir = getUploadDir();
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, filename), parsed.svgText, { encoding: 'utf8', flag: 'wx' });
+
+  return { filename, mimeType: 'image/svg+xml', sizeBytes: Buffer.byteLength(parsed.svgText) };
+}
+
+export async function readSvgAsset(filename) {
+  if (!SVG_FILENAME_RE.test(filename)) return null;
+  try {
+    const raw = await readFile(path.join(getUploadDir(), filename), 'utf8');
+    const parsed = sanitizeSvg(raw);
+    return parsed ? { viewBox: parsed.viewBox, body: parsed.body } : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function copyUploadFile(oldFilename) {
+  const ext = path.extname(oldFilename);
+  const nextFilename = `${randomUUID()}${ext}`;
+  const dir = getUploadDir();
+  await mkdir(dir, { recursive: true });
+  await copyFile(path.join(dir, oldFilename), path.join(dir, nextFilename));
+  return nextFilename;
 }

@@ -5,8 +5,9 @@ import { initPreview } from './preview.js';
 import { initTheme } from './theme.js';
 import { initFonts } from './fonts.js';
 import { initMusic } from './music.js';
+import { initOrnaments } from './ornaments.js';
 
-const { invitationId, content, version, assets, audio } = JSON.parse(
+const { invitationId, content, version, assets, audio, svgs = [] } = JSON.parse(
   document.getElementById('editor-data').textContent
 );
 
@@ -56,22 +57,28 @@ const store = createStore({
   onSaved: () => preview.refresh(),
   onErrors: showErrors,
   onConflict: () => conflictEl.classList.remove('hidden'),
+  onRestore: () => syncAll(),
 });
 
 // ---------- Pengikatan dua arah: <input data-bind="sections.cover.heading"> ----------
-function bindAll(root) {
+function syncBindings(root = document) {
   root.querySelectorAll('[data-bind]').forEach((el) => {
     const path = el.dataset.bind;
     const value = store.get(path);
     if (el.type === 'checkbox') el.checked = Boolean(value);
     else el.value = value ?? '';
 
+    if (el.dataset.bound) return;
+    el.dataset.bound = '1';
     el.addEventListener('input', () => {
       const raw = el.type === 'checkbox' ? el.checked : el.value;
       store.set(path, el.dataset.type === 'number' ? Number(raw) : raw);
+      updateHistoryButtons();
     });
   });
 }
+const bindAll = syncBindings;
+
 bindAll(document);
 initFonts({ store });
 initTheme({ store });
@@ -86,6 +93,7 @@ document.querySelectorAll('[data-color-preset]').forEach((btn) => {
     const value = btn.dataset.colorPreset;
     colorInput.value = value;
     store.set('theme.primaryColor', value);
+    updateHistoryButtons();
   });
 });
 
@@ -133,6 +141,7 @@ function initList(container) {
         store.removeAt(path, i);
         showErrors({}); // pesan error lama merujuk indeks yang sudah bergeser
         render();
+        updateHistoryButtons();
       });
 
       itemsEl.append(fragment);
@@ -145,11 +154,14 @@ function initList(container) {
   addBtn.addEventListener('click', () => {
     store.push(path, structuredClone(blank));
     render();
+    updateHistoryButtons();
   });
 
   render();
+  container._rerender = render;
 }
 document.querySelectorAll('[data-list]').forEach(initList);
+initOrnaments({ store, invitationId, svgs });
 
 // ---------- Salin lokasi dari acara pertama ----------
 document.querySelector('[data-action="copy-location"]')?.addEventListener('click', (e) => {
@@ -172,6 +184,7 @@ document.querySelector('[data-action="copy-location"]')?.addEventListener('click
     const input = document.querySelector(`[data-bind="${CSS.escape(path)}"]`);
     if (input) input.value = value;
   }
+  updateHistoryButtons();
 });
 
 document.getElementById('reload-btn')?.addEventListener('click', () => location.reload());
@@ -201,4 +214,31 @@ document.querySelectorAll('[data-tab]').forEach((btn) => {
       b.classList.toggle('font-medium', b === btn);
     });
   });
+});
+
+// ---------- Undo / Redo ----------
+const undoBtn = document.getElementById('undo-btn');
+const redoBtn = document.getElementById('redo-btn');
+
+function updateHistoryButtons() {
+  if (undoBtn) undoBtn.disabled = !store.canUndo();
+  if (redoBtn) redoBtn.disabled = !store.canRedo();
+}
+
+function syncAll() {
+  document.querySelectorAll('[data-list]').forEach((c) => c._rerender?.());
+  syncBindings(document);
+  updateHistoryButtons();
+}
+
+undoBtn?.addEventListener('click', () => store.undo());
+redoBtn?.addEventListener('click', () => store.redo());
+
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
+    if (store.undo()) e.preventDefault();
+  } else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) {
+    if (store.redo()) e.preventDefault();
+  }
 });

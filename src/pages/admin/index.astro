@@ -1,26 +1,221 @@
 ---
-import '../../styles/global.css';
-import { count } from 'drizzle-orm';
+import AppLayout from '../../layouts/AppLayout.astro';
+import { z } from 'zod';
+import { count, desc, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { users, invitations } from '../../db/schema.js';
+import { guestMessages, invitations, rsvps, sessions, users } from '../../db/schema.js';
+import { deleteInvitationAsAdmin, isUuid } from '../../lib/invitations.js';
+import { getAppName, setAppName } from '../../lib/settings.js';
 
-const user = Astro.locals.user;
-const [{ value: userCount }] = await db.select({ value: count() }).from(users);
-const [{ value: invitationCount }] = await db.select({ value: count() }).from(invitations);
+const admin = Astro.locals.user;
+let notice = '';
+let settingsError = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? '');
+
+  if (action === 'settings') {
+    const parsed = z.string().trim().min(2, 'Minimal 2 karakter').max(60, 'Maksimal 60 karakter')
+      .safeParse(String(form.get('appName') ?? ''));
+    if (!parsed.success) {
+      settingsError = parsed.error.issues[0].message;
+    } else {
+      await setAppName(parsed.data);
+      return Astro.redirect('/admin?saved=settings');
+    }
+  }
+
+  if (action === 'toggle-user') {
+    const targetId = String(form.get('userId') ?? '');
+    if (isUuid(targetId) && targetId !== admin.id) {
+      const [target] = await db.select({ isActive: users.isActive }).from(users).where(eq(users.id, targetId)).limit(1);
+      if (target) {
+        const nextActive = !target.isActive;
+        await db.update(users).set({ isActive: nextActive }).where(eq(users.id, targetId));
+        if (!nextActive) await db.delete(sessions).where(eq(sessions.userId, targetId));
+        return Astro.redirect('/admin?saved=user');
+      }
+    }
+  }
+
+  if (action === 'toggle-invitation') {
+    const invId = String(form.get('invitationId') ?? '');
+    if (isUuid(invId)) {
+      const [inv] = await db.select({ isDisabled: invitations.isDisabled }).from(invitations).where(eq(invitations.id, invId)).limit(1);
+      if (inv) {
+        await db.update(invitations).set({ isDisabled: !inv.isDisabled }).where(eq(invitations.id, invId));
+        return Astro.redirect('/admin?saved=invitation');
+      }
+    }
+  }
+
+  if (action === 'delete-invitation') {
+    const invId = String(form.get('invitationId') ?? '');
+    if (await deleteInvitationAsAdmin(invId)) {
+      return Astro.redirect('/admin?saved=deleted');
+    }
+  }
+}
+
+const savedMap = {
+  settings: 'Nama aplikasi berhasil disimpan.',
+  user: 'Status pengguna diperbarui.',
+  invitation: 'Status undangan diperbarui.',
+  deleted: 'Undangan dan seluruh file gambar/lagu berhasil dihapus.',
+};
+const savedKey = Astro.url.searchParams.get('saved') ?? '';
+if (Object.hasOwn(savedMap, savedKey)) notice = savedMap[savedKey];
+
+const [
+  appName,
+  [{ value: rsvpCount }],
+  [{ value: wishCount }],
+  userList,
+  invitationList,
+] = await Promise.all([
+  getAppName(),
+  db.select({ value: count() }).from(rsvps),
+  db.select({ value: count() }).from(guestMessages),
+  db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    isActive: users.isActive,
+    createdAt: users.createdAt,
+  }).from(users).orderBy(desc(users.createdAt)),
+  db.select({
+    id: invitations.id,
+    title: invitations.title,
+    slug: invitations.slug,
+    status: invitations.status,
+    isDisabled: invitations.isDisabled,
+    updatedAt: invitations.updatedAt,
+    ownerEmail: users.email,
+  }).from(invitations)
+    .innerJoin(users, eq(users.id, invitations.userId))
+    .orderBy(desc(invitations.updatedAt)),
+]);
+
+const publishedCount = invitationList.filter((i) => i.status === 'published' && !i.isDisabled).length;
+const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' });
 ---
-<html lang="id">
-  <head><meta charset="utf-8" /><title>Admin</title></head>
-  <body class="p-8">
-    <h1 class="text-2xl font-bold">Panel Admin</h1>
-    <p class="text-sm">Masuk sebagai {user.name} ({user.role})</p>
-
-    <div class="mt-6 grid grid-cols-2 gap-4 max-w-md">
-      <div class="border rounded p-4"><p class="text-sm">Pengguna</p><p class="text-3xl font-bold">{userCount}</p></div>
-      <div class="border rounded p-4"><p class="text-sm">Undangan</p><p class="text-3xl font-bold">{invitationCount}</p></div>
+<AppLayout title="Panel Admin">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Panel Admin</h1>
+      <p class="text-sm text-gray-600">Masuk sebagai {admin.name} ({admin.email})</p>
     </div>
+    <a href="/dashboard" class="text-sm underline">← Ke Dashboard Saya</a>
+  </div>
 
-    <form method="POST" action="/api/logout" class="mt-6">
-      <button class="border rounded px-4 py-2">Keluar</button>
+  {notice && (
+    <p class="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{notice}</p>
+  )}
+
+  <section class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <div class="rounded-lg border bg-white p-4">
+      <p class="text-xs text-gray-600">Pengguna</p>
+      <p class="text-2xl font-bold">{userList.length}</p>
+    </div>
+    <div class="rounded-lg border bg-white p-4">
+      <p class="text-xs text-gray-600">Undangan (Publik)</p>
+      <p class="text-2xl font-bold">{invitationList.length} <span class="text-sm font-normal text-gray-500">({publishedCount})</span></p>
+    </div>
+    <div class="rounded-lg border bg-white p-4">
+      <p class="text-xs text-gray-600">Total RSVP</p>
+      <p class="text-2xl font-bold">{rsvpCount}</p>
+    </div>
+    <div class="rounded-lg border bg-white p-4">
+      <p class="text-xs text-gray-600">Total Ucapan</p>
+      <p class="text-2xl font-bold">{wishCount}</p>
+    </div>
+  </section>
+
+  <section class="mt-8 max-w-xl rounded-lg border bg-white p-6">
+    <h2 class="font-semibold">Pengaturan Aplikasi</h2>
+    <form method="POST" class="mt-3 flex flex-wrap items-end gap-3">
+      <input type="hidden" name="_action" value="settings" />
+      <div class="min-w-[220px] flex-1">
+        <label for="appName" class="block text-sm font-medium">Nama aplikasi</label>
+        <input id="appName" name="appName" value={appName} required minlength="2" maxlength="60"
+          class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+      </div>
+      <button class="rounded bg-black px-4 py-2 text-sm text-white">Simpan</button>
     </form>
-  </body>
-</html>
+    {settingsError && <p class="mt-2 text-sm text-red-600">{settingsError}</p>}
+  </section>
+
+  <section class="mt-8 rounded-lg border bg-white p-6">
+    <h2 class="font-semibold">Kelola Pengguna ({userList.length})</h2>
+    <ul class="mt-4 divide-y">
+      {userList.map((u) => (
+        <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+          <div>
+            <p class="font-medium">
+              {u.name}
+              <span class="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs uppercase">{u.role}</span>
+              {!u.isActive && <span class="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">Nonaktif</span>}
+            </p>
+            <p class="text-xs text-gray-500">{u.email} · daftar {fmt.format(u.createdAt)}</p>
+          </div>
+          {u.id !== admin.id ? (
+            <form method="POST">
+              <input type="hidden" name="_action" value="toggle-user" />
+              <input type="hidden" name="userId" value={u.id} />
+              <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
+                {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+              </button>
+            </form>
+          ) : (
+            <span class="text-xs text-gray-400">Akun Anda</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="mt-8 rounded-lg border bg-white p-6">
+    <h2 class="font-semibold">Kelola Undangan ({invitationList.length})</h2>
+    {invitationList.length === 0 ? (
+      <p class="mt-3 text-sm text-gray-500">Belum ada undangan.</p>
+    ) : (
+      <ul class="mt-4 divide-y">
+        {invitationList.map((inv) => (
+          <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+            <div class="min-w-0">
+              <p class="truncate font-medium">
+                {inv.title}
+                <span class={'ml-2 rounded px-1.5 py-0.5 text-xs ' + (inv.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700')}>
+                  {inv.status}
+                </span>
+                {inv.isDisabled && <span class="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">Dinonaktifkan</span>}
+              </p>
+              <p class="text-xs text-gray-500">/{inv.slug} · {inv.ownerEmail} · {fmt.format(inv.updatedAt)}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              {inv.status === 'published' && !inv.isDisabled && (
+                <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="text-xs underline">Lihat</a>
+              )}
+              <form method="POST">
+                <input type="hidden" name="_action" value="toggle-invitation" />
+                <input type="hidden" name="invitationId" value={inv.id} />
+                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
+                  {inv.isDisabled ? 'Aktifkan' : 'Nonaktifkan'}
+                </button>
+              </form>
+              <form method="POST" onsubmit="return confirm('Hapus undangan ini beserta seluruh file gambar dan lagunya?')">
+                <input type="hidden" name="_action" value="delete-invitation" />
+                <input type="hidden" name="invitationId" value={inv.id} />
+                <button class="rounded border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50">
+                  Hapus
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+</AppLayout>

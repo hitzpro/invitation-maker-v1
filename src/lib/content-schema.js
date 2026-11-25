@@ -27,11 +27,13 @@ const urlField = z
     'Tautan harus diawali http:// atau https://'
   );
 
+const posPct = z.number().int().min(0).max(100);
 const person = z.object({
   name: text(40),
   fullName: text(100),
   parents: text(200),
   photoId: nullableAssetId,
+  photoPos: z.object({ x: posPct, y: posPct }),
 });
 
 const eventItem = z.object({
@@ -82,10 +84,17 @@ const section = (shape) => z.object({ enabled, fonts: fontsSchema, ...shape });
 
 const decorationSchema = z.object({
   kind: z.enum(ORNAMENT_KINDS),
+  assetId: nullableAssetId.default(null),
   section: z.enum(SECTION_ORDER),
   position: z.enum(ORNAMENT_POSITIONS),
   size: z.enum(ORNAMENT_SIZES),
   flip: z.boolean(),
+});
+
+const giftAccount = z.object({
+  bank: text(40),
+  number: text(40),
+  holder: text(80),
 });
 
 export const contentSchema = z.object({
@@ -144,6 +153,12 @@ export const contentSchema = z.object({
       mapsUrl: urlField,
       style: styleSchema.extend({ layout: z.enum(LAYOUTS) }),
     }),
+    gift: section({
+      intro: text(400),
+      qrisImageId: nullableAssetId,
+      accounts: z.array(giftAccount).max(5, 'Maksimal 5 rekening'),
+      style: styleSchema.extend({ layout: z.enum(LAYOUTS) }),
+    }),
     rsvp: section({ style: styleSchema }),
     wishes: section({ style: styleSchema }),
     closing: section({
@@ -168,7 +183,7 @@ function collect(issues) {
 
 // Mengembalikan { data } atau { errors } (kunci error berupa path, misalnya "sections.event.items.0.date").
 // assetIds = daftar gambar milik undangan; referensi di luar daftar ini ditolak.
-export function validateContent(raw, { assetIds = [], audioIds = [] } = {}) {
+export function validateContent(raw, { assetIds = [], audioIds = [], svgIds = [] } = {}) {
   const parsed = contentSchema.safeParse(raw);
   if (!parsed.success) return { errors: collect(parsed.error.issues) };
 
@@ -183,6 +198,7 @@ export function validateContent(raw, { assetIds = [], audioIds = [] } = {}) {
   check('sections.cover.imageId', s.cover.imageId);
   check('sections.couple.bride.photoId', s.couple.bride.photoId);
   check('sections.couple.groom.photoId', s.couple.groom.photoId);
+  check('sections.gift.qrisImageId', s.gift.qrisImageId);
 
   s.cover.extraImageIds.forEach((id, i) => check(`sections.cover.extraImageIds.${i}`, id));
   for (const [key, sec] of Object.entries(s)) {
@@ -197,6 +213,12 @@ export function validateContent(raw, { assetIds = [], audioIds = [] } = {}) {
   if (content.music.assetId && !audioIds.includes(content.music.assetId)) {
     errors['music.assetId'] = 'Lagu tidak ditemukan di undangan ini';
   }
+
+  content.decorations.forEach((d, i) => {
+    if (d.kind === 'custom' && (!d.assetId || !svgIds.includes(d.assetId))) {
+      errors[`decorations.${i}.assetId`] = 'Pilih file SVG ornamen yang valid';
+    }
+  });
 
   return Object.keys(errors).length ? { errors } : { data: content };
 }

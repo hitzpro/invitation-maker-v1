@@ -19,11 +19,11 @@ const [inv] = await db
 
 if (!inv) return Astro.rewrite('/404');
 
-const { content, images } = await getRenderData(inv.id);
+const { content, images, wishes, hasMoreWishes } = await getRenderData(inv.id);
 const guestName = guestNameFrom(Astro.url);
 
 // APP_URL menjadi acuan URL absolut (penting bila aplikasi berada di belakang reverse proxy)
 const baseUrl = (env('APP_URL') ?? Astro.url.origin).replace(/\/$/, '');
 const meta = buildShareMeta(inv, content, images, baseUrl);
 ---
-<InvitationShell invitation={inv} content={content} images={images} guestName={guestName} meta={meta} />
+<InvitationShell invitation={inv} content={content} images={images} wishes={wishes} hasMoreWishes={hasMoreWishes} guestName={guestName} meta={meta} />

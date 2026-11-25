@@ -1,5 +1,9 @@
 import { getInvitationContent, TIMEZONES, isRealDate } from './content.js';
 import { listAssets } from './invitations.js';
+import { readSvgAsset } from './upload.js';
+import { desc, eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { guestMessages } from '../db/schema.js';
 
 
 const OFFSETS = { 'Asia/Jakarta': '+07:00', 'Asia/Makassar': '+08:00', 'Asia/Jayapura': '+09:00' };
@@ -9,10 +13,22 @@ const DEFAULT_COLOR = '#8b5e3c';
 export const safeColor = (c) => (/^#[0-9a-fA-F]{6}$/.test(c ?? '') ? c : DEFAULT_COLOR);
 
 export async function getRenderData(invitationId) {
-  const [content, imageRows, audioRows] = await Promise.all([
+const [content, imageRows, audioRows, svgRows, wishRows] = await Promise.all([
     getInvitationContent(invitationId),
     listAssets(invitationId),
     listAssets(invitationId, 'audio'),
+    listAssets(invitationId, 'svg'),
+    db
+      .select({
+        id: guestMessages.id,
+        guestName: guestMessages.guestName,
+        message: guestMessages.message,
+        createdAt: guestMessages.createdAt,
+      })
+      .from(guestMessages)
+      .where(eq(guestMessages.invitationId, invitationId))
+      .orderBy(desc(guestMessages.createdAt))
+      .limit(21),
   ]);
 
   const images = new Map(
@@ -24,7 +40,20 @@ export async function getRenderData(invitationId) {
   // Lagu disimpan di peta yang sama; hanya diakses lewat content.music.assetId
   for (const a of audioRows) images.set(a.id, { url: `/audio/${a.filename}`, audio: true });
 
-  return { content, images };
+  // SVG ornamen dibaca aman dari disk
+  await Promise.all(
+    svgRows.map(async (a) => {
+      const parsed = await readSvgAsset(a.filename);
+      if (parsed) images.set(a.id, { svg: true, ...parsed });
+    })
+  );
+
+  return {
+    content,
+    images,
+    wishes: wishRows.slice(0, 20),
+    hasMoreWishes: wishRows.length > 20,
+  };
 }
 
 // Section tampil jika enabled DAN datanya ada
@@ -39,6 +68,9 @@ const HAS_DATA = {
   rsvp: () => true,
   wishes: () => true,
   closing: () => true,
+  gift: (c, images) =>
+    c.sections.gift.accounts.some((a) => a.bank.trim() && a.number.trim()) ||
+    images.has(c.sections.gift.qrisImageId),
 };
 
 export function visibleSections(content, images) {
@@ -77,7 +109,7 @@ export function eventInstantISO(item, timezone) {
 export const SECTION_LABELS = {
   cover: 'Cover', couple: 'Mempelai', event: 'Acara', countdown: 'Countdown',
   story: 'Kisah Kami', gallery: 'Galeri', location: 'Lokasi',
-  rsvp: 'RSVP', wishes: 'Ucapan', closing: 'Penutup',
+  rsvp: 'RSVP', wishes: 'Ucapan', closing: 'Penutup', gift: 'Amplop Digital',
 };
 
 // Nama tamu dari ?to=... (di-escape otomatis oleh Astro saat dirender)

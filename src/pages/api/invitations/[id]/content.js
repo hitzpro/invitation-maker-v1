@@ -44,7 +44,8 @@ export async function PUT({ params, locals, request }) {
 
   const assetIds = (await listAssets(inv.id)).map((a) => a.id);
   const audioIds = (await listAssets(inv.id, 'audio')).map((a) => a.id);
-  const result = validateContent(body.content, { assetIds, audioIds });
+  const svgIds = (await listAssets(inv.id, 'svg')).map((a) => a.id);
+  const result = validateContent(body.content, { assetIds, audioIds, svgIds });
   if (result.errors) return json(422, { error: 'Validasi gagal', errors: result.errors });
 
   try {

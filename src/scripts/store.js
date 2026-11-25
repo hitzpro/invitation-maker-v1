@@ -20,10 +20,9 @@ export function setPath(obj, path, value) {
   target[last] = value;
 }
 
-// status: dirty | saving | saved | error | invalid | conflict
-export function createStore({ invitationId, content, version, onStatus, onSaved, onErrors, onConflict }) {
+export function createStore({ invitationId, content, version, onStatus, onSaved, onErrors, onConflict, onRestore }) {
   const url = `/api/invitations/${invitationId}/content`;
-  const state = content;
+  let state = content;
   let currentVersion = version;
   let dirty = false;
   let saving = false;
@@ -32,14 +31,26 @@ export function createStore({ invitationId, content, version, onStatus, onSaved,
   let timer = null;
   let retryTimer = null;
 
+  const past = [];
+  const future = [];
+  const MAX_HISTORY = 40;
+  let lastSnapshotAt = 0;
+
   const emit = (status) => onStatus?.(status);
+
+  function snapshot(force = false) {
+    const now = Date.now();
+    // Gabungkan ketikan beruntun dalam 600ms menjadi satu langkah undo
+    if (!force && past.length > 0 && now - lastSnapshotAt < 600) return;
+    past.push(structuredClone(state));
+    if (past.length > MAX_HISTORY) past.shift();
+    future.length = 0;
+    lastSnapshotAt = now;
+  }
 
   async function save() {
     if (locked) return;
-    if (saving) {
-      queued = true;
-      return;
-    }
+    if (saving) { queued = true; return; }
     clearTimeout(timer);
     clearTimeout(retryTimer);
     saving = true;
@@ -76,10 +87,7 @@ export function createStore({ invitationId, content, version, onStatus, onSaved,
       retryTimer = setTimeout(save, 5000);
     } finally {
       saving = false;
-      if (queued) {
-        queued = false;
-        save();
-      }
+      if (queued) { queued = false; save(); }
     }
   }
 
@@ -93,29 +101,51 @@ export function createStore({ invitationId, content, version, onStatus, onSaved,
   return {
     get: (path) => getPath(state, path),
     set(path, value) {
+      snapshot(false);
       setPath(state, path, value);
       schedule();
     },
     flush: () => dirty && save(),
     isDirty: () => dirty || saving,
     push(path, item) {
+      snapshot(true);
       const list = getPath(state, path);
       if (!Array.isArray(list)) throw new Error(`Bukan array: ${path}`);
       list.push(item);
       schedule();
     },
     removeAt(path, index) {
+      snapshot(true);
       const list = getPath(state, path);
       if (!Array.isArray(list)) throw new Error(`Bukan array: ${path}`);
       list.splice(index, 1);
       schedule();
     },
     move(path, from, to) {
+      snapshot(true);
       const list = getPath(state, path);
       if (!Array.isArray(list) || to < 0 || to >= list.length) return;
       const [item] = list.splice(from, 1);
       list.splice(to, 0, item);
       schedule();
+    },
+    canUndo: () => past.length > 0,
+    canRedo: () => future.length > 0,
+    undo() {
+      if (!past.length) return false;
+      future.push(structuredClone(state));
+      state = past.pop();
+      onRestore?.();
+      schedule();
+      return true;
+    },
+    redo() {
+      if (!future.length) return false;
+      past.push(structuredClone(state));
+      state = future.pop();
+      onRestore?.();
+      schedule();
+      return true;
     },
   };
 }

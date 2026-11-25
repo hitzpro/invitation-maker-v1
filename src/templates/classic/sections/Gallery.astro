@@ -37,26 +37,79 @@ const sourceOf = (photo, i) =>
 
   <div class={`mt-8 ${containerClass}`}>
     {photos.map((photo, i) => (
-      <button type="button" data-lightbox-open data-full={photo.url} aria-label={`Perbesar foto ${i + 1}`}
-        class={itemClass(i)}
+      <button
+        type="button"
+        data-lightbox-open
+        data-full={photo.url}
+        aria-label={`Perbesar foto ${i + 1}`}
+        class={`${itemClass(i)} group relative cursor-zoom-in`}
         data-reveal-item={animate ? '' : undefined}
-        style={animate ? `--reveal-delay: ${Math.min(i, 6) * 90}ms` : undefined}>
-        <img src={sourceOf(photo, i)} width={photo.width} height={photo.height} alt={`Foto galeri ${i + 1}`}
-          loading="lazy" decoding="async" class={imageClass} />
+        style={animate ? `--reveal-delay: ${Math.min(i, 6) * 90}ms` : undefined}
+      >
+        <img
+          src={sourceOf(photo, i)}
+          width={photo.width}
+          height={photo.height}
+          alt={`Foto galeri ${i + 1}`}
+          loading="lazy"
+          decoding="async"
+          class={`${imageClass} gal-img`}
+        />
       </button>
     ))}
   </div>
 
-  <dialog data-lightbox
-    class="m-auto max-h-[95vh] max-w-[95vw] border-0 bg-transparent p-0 backdrop:bg-black/85">
-    <div class="relative">
-      <img data-lightbox-img alt="" class="max-h-[90vh] max-w-[95vw] object-contain" />
-      <button type="button" data-lightbox-close aria-label="Tutup"
-        class="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl text-white">✕</button>
-      <button type="button" data-lightbox-prev aria-label="Foto sebelumnya"
-        class="absolute left-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white">‹</button>
-      <button type="button" data-lightbox-next aria-label="Foto berikutnya"
-        class="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white">›</button>
+  <dialog
+    data-lightbox
+    class="m-auto max-h-[95vh] max-w-[95vw] border-0 bg-transparent p-0 backdrop:bg-black/85"
+  >
+    <div class="relative select-none">
+      <div data-lightbox-stage class="overflow-hidden">
+        <img
+          data-lightbox-img
+          alt=""
+          draggable="false"
+          class="max-h-[85vh] max-w-[95vw] origin-center object-contain transition-transform duration-150"
+        />
+      </div>
+
+      <div class="mt-2 flex items-center justify-center gap-2 text-xs text-white">
+        <span data-lightbox-counter class="rounded-full bg-black/60 px-3 py-1"></span>
+        <button type="button" data-zoom-out aria-label="Perkecil" class="h-8 w-8 rounded-full bg-black/60 text-base">
+          −
+        </button>
+        <button type="button" data-zoom-reset class="rounded-full bg-black/60 px-3 py-1">
+          100%
+        </button>
+        <button type="button" data-zoom-in aria-label="Perbesar" class="h-8 w-8 rounded-full bg-black/60 text-base">
+          +
+        </button>
+      </div>
+
+      <button
+        type="button"
+        data-lightbox-close
+        aria-label="Tutup"
+        class="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl text-white"
+      >
+        ✕
+      </button>
+      <button
+        type="button"
+        data-lightbox-prev
+        aria-label="Foto sebelumnya"
+        class="absolute left-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        data-lightbox-next
+        aria-label="Foto berikutnya"
+        class="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white"
+      >
+        ›
+      </button>
     </div>
   </dialog>
 </section>
@@ -66,53 +119,104 @@ const sourceOf = (photo, i) =>
   if (section) {
     const dialog = section.querySelector('[data-lightbox]');
     const bigImg = dialog.querySelector('[data-lightbox-img]');
+    const counter = dialog.querySelector('[data-lightbox-counter]');
+    const resetBtn = dialog.querySelector('[data-zoom-reset]');
     const openers = [...section.querySelectorAll('[data-lightbox-open]')];
     const prev = dialog.querySelector('[data-lightbox-prev]');
     const next = dialog.querySelector('[data-lightbox-next]');
+
     let index = 0;
+    let scale = 1;
+    let tx = 0;
+    let ty = 0;
+    let dragging = false;
+    let dragStart = null;
 
     if (openers.length < 2) {
       prev.classList.add('hidden');
       next.classList.add('hidden');
     }
 
+    const applyTransform = () => {
+      if (scale <= 1) { tx = 0; ty = 0; }
+      bigImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      bigImg.style.cursor = scale > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in';
+      resetBtn.textContent = `${Math.round(scale * 100)}%`;
+    };
+
+    const setZoom = (nextScale) => {
+      scale = Math.min(3, Math.max(1, Math.round(nextScale * 10) / 10));
+      applyTransform();
+    };
+
     const show = (i) => {
       index = (i + openers.length) % openers.length;
       bigImg.src = openers[index].dataset.full;
       bigImg.alt = openers[index].querySelector('img').alt;
+      counter.textContent = `${index + 1} / ${openers.length}`;
+      setZoom(1);
     };
 
     openers.forEach((btn, i) => {
       btn.addEventListener('click', () => {
         show(i);
-        document.documentElement.style.overflow = 'hidden'; // kunci scroll halaman
+        document.documentElement.style.overflow = 'hidden';
         dialog.showModal();
       });
     });
 
     dialog.addEventListener('close', () => {
       document.documentElement.style.overflow = '';
+      setZoom(1);
     });
     dialog.querySelector('[data-lightbox-close]').addEventListener('click', () => dialog.close());
+    dialog.querySelector('[data-zoom-in]').addEventListener('click', () => setZoom(scale + 0.5));
+    dialog.querySelector('[data-zoom-out]').addEventListener('click', () => setZoom(scale - 0.5));
+    resetBtn.addEventListener('click', () => setZoom(1));
     prev.addEventListener('click', () => show(index - 1));
     next.addEventListener('click', () => show(index + 1));
 
-    // klik latar (di luar gambar) menutup
-    dialog.addEventListener('click', (e) => {
-      if (e.target === dialog) dialog.close();
-    });
+    // Double-click untuk toggle zoom 1x <-> 2x
+    bigImg.addEventListener('dblclick', () => setZoom(scale > 1 ? 1 : 2));
 
+    // Scroll wheel untuk zoom
+    bigImg.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      setZoom(scale + (e.deltaY < 0 ? 0.3 : -0.3));
+    }, { passive: false });
+
+    // Geser gambar saat sedang zoom (pointer)
+    bigImg.addEventListener('pointerdown', (e) => {
+      if (scale <= 1) return;
+      dragging = true;
+      dragStart = { x: e.clientX - tx, y: e.clientY - ty };
+      bigImg.setPointerCapture(e.pointerId);
+      applyTransform();
+    });
+    bigImg.addEventListener('pointermove', (e) => {
+      if (!dragging || !dragStart) return;
+      tx = e.clientX - dragStart.x;
+      ty = e.clientY - dragStart.y;
+      applyTransform();
+    });
+    const endDrag = () => { dragging = false; dragStart = null; applyTransform(); };
+    bigImg.addEventListener('pointerup', endDrag);
+    bigImg.addEventListener('pointercancel', endDrag);
+
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog.close(); });
     dialog.addEventListener('keydown', (e) => {
       if (openers.length < 2) return;
       if (e.key === 'ArrowLeft') show(index - 1);
       if (e.key === 'ArrowRight') show(index + 1);
     });
 
-    // geser kiri/kanan di layar sentuh
+    // Swipe pindah foto hanya saat tidak sedang di-zoom
     let startX = null;
-    dialog.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+    dialog.addEventListener('touchstart', (e) => {
+      if (scale === 1) startX = e.touches[0].clientX;
+    }, { passive: true });
     dialog.addEventListener('touchend', (e) => {
-      if (startX === null || openers.length < 2) return;
+      if (startX === null || scale > 1 || openers.length < 2) return;
       const dx = e.changedTouches[0].clientX - startX;
       if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
       startX = null;

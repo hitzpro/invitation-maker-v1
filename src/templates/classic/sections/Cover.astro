@@ -20,7 +20,7 @@ const bride = couple.bride.name;
 const groom = couple.groom.name;
 ---
 <section id="cover" class="cover" data-layout={layout} {...fontAttrs(cover.fonts)}>
-  <Decorations items={decos} />
+  <Decorations items={decos} images={images} />
 
   <div class="cover-media" data-slideshow={slides.length > 1 ? '' : undefined}
     data-interval={interval} data-zoom={zoom ? '' : undefined} style={`--slide-interval: ${interval}s`}>

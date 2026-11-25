@@ -1,10 +1,12 @@
 ---
 import '../styles/global.css';
 import { resolveTemplate } from '../templates/index.js';
+import { getAppName } from '../lib/settings.js';
 
-const { invitation, content, images, guestName = '', meta = null } = Astro.props;
+const { invitation, content, images, wishes = [], hasMoreWishes = false, guestName = '', meta = null } = Astro.props;
 const Template = resolveTemplate(invitation.templateKey);
 const hasBanner = Astro.slots.has('banner');
+const appName = meta ? await getAppName() : '';
 ---
 <html lang="id" class={'scroll-smooth ' + (hasBanner ? 'scroll-pt-10' : '')}>
   <head>
@@ -18,7 +20,7 @@ const hasBanner = Astro.slots.has('banner');
         <meta name="description" content={meta.description} />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="id_ID" />
-        <meta property="og:site_name" content="Undangan Digital" />
+        <meta property="og:site_name" content={appName} />
         <meta property="og:title" content={meta.title} />
         <meta property="og:description" content={meta.description} />
         <meta property="og:url" content={meta.url} />
@@ -31,6 +33,6 @@ const hasBanner = Astro.slots.has('banner');
   </head>
   <body>
     <slot name="banner" />
-    <Template invitation={invitation} content={content} images={images} guestName={guestName} />
+    <Template invitation={invitation} content={content} images={images} wishes={wishes} hasMoreWishes={hasMoreWishes} guestName={guestName} />
   </body>
 </html>

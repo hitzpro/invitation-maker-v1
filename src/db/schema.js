@@ -92,3 +92,14 @@ export const appSettings = pgTable('app_settings', {
   value: text('value').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
+
+// ---------- invitation_guests ----------
+export const invitationGuests = pgTable('invitation_guests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  invitationId: uuid('invitation_id').notNull()
+    .references(() => invitations.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  phone: text('phone').notNull().default(''),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index('guests_invitation_idx').on(t.invitationId)]);

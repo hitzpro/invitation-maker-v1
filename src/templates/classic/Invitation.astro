@@ -14,17 +14,18 @@ import { PATTERN_KINDS, SURFACES } from '../../lib/content.js';
 import { animateOn, fontAttrs, patternOn, safeColor, visibleSections } from '../../lib/render-data.js';
 import Decorations from './Decorations.astro';
 import Music from './Music.astro';
+import Gift from './sections/Gift.astro';
 
 
-const { invitation, content, images, guestName = '' } = Astro.props;
+const { invitation, content, images, wishes = [], hasMoreWishes = false, guestName = '' } = Astro.props;
 
 const registry = {
   cover: Cover, couple: Couple, event: Schedule, countdown: Countdown, story: Story,
-  gallery: Gallery, location: Venue, rsvp: Rsvp, wishes: Wishes, closing: Closing,
+  gallery: Gallery, location: Venue, gift: Gift, rsvp: Rsvp, wishes: Wishes, closing: Closing,
 };
 
 const keys = visibleSections(content, images);
-const props = { invitation, content, images, guestName };
+const props = { invitation, content, images, wishes, hasMoreWishes, guestName };
 const CoverSection = keys.includes('cover') ? registry.cover : null;
 
 const { theme } = content;
@@ -80,7 +81,7 @@ const anyAnimate = rest.some((r) => r.animate);
               <img src={bg.url} alt="" loading="lazy" decoding="async" />
             </div>
           )}
-          <Decorations items={decos} />
+          <Decorations items={decos} images={images} />
           <div data-reveal-item={wrapReveal ? '' : undefined}>
             <Component {...props} animate={animate} />
           </div>

@@ -16,6 +16,7 @@ import StyleFields from '../../../../components/editor/StyleFields.astro';
 import FontFields from '../../../../components/editor/FontFields.astro';
 import DecorationFields from '../../../../components/editor/DecorationFields.astro';
 import MusicFields from '../../../../components/editor/MusicFields.astro';
+import GiftFields from '../../../../components/editor/GiftFields.astro';
 
 const user = Astro.locals.user;
 const { id } = Astro.params;
@@ -29,6 +30,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-store');
 const { content, version } = await getContentWithVersion(inv.id);
 const assets = await listAssets(inv.id);
 const tracks = await listAssets(inv.id, 'audio');
+const svgs = await listAssets(inv.id, 'svg');
 
 const initial = {
   invitationId: inv.id,
@@ -36,6 +38,7 @@ const initial = {
   version,
   assets: assets.map((a) => ({ id: a.id, name: a.originalName, thumb: `/uploads/${a.filename}?w=480` })),
   audio: tracks.map((a) => ({ id: a.id, name: a.originalName, url: `/audio/${a.filename}` })),
+  svgs: svgs.map((a) => ({ id: a.id, name: a.originalName })),
 };
 // '<' di-escape agar isi JSON tidak bisa menutup tag <script>
 const initialJson = JSON.stringify(initial).replace(/</g, '\\u003c');
@@ -47,6 +50,7 @@ const fieldComponents = {
   story: StoryFields,
   gallery: GalleryFields,
   location: LocationFields,
+  gift: GiftFields,
   closing: ClosingFields,
 };
 const notes = {
@@ -77,6 +81,13 @@ const cards = content.sectionOrder.map((key) => ({
         <span class="truncate font-medium">{inv.title}</span>
       </div>
       <div class="flex shrink-0 items-center gap-3 text-sm">
+        <div class="flex items-center gap-1">
+          <button type="button" id="undo-btn" title="Urungkan (Ctrl+Z)" disabled
+            class="rounded border px-2 py-1 text-xs hover:bg-gray-100 disabled:opacity-30">↶ Undo</button>
+          <button type="button" id="redo-btn" title="Ulangi (Ctrl+Y)" disabled
+            class="rounded border px-2 py-1 text-xs hover:bg-gray-100 disabled:opacity-30">↷ Redo</button>
+        </div>
+
         <span id="save-status" class="text-green-700" aria-live="polite">Tersimpan</span>
         <a href={`/dashboard/invitations/${id}/preview`} target="_blank" rel="noopener"
           class="rounded border px-3 py-1 hover:bg-gray-100">Buka preview ↗</a>

@@ -14,7 +14,7 @@ if (!inv) return Astro.rewrite('/404');
 // Konten draft bersifat privat: jangan di-cache
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 
-const { content, images } = await getRenderData(inv.id);
+const { content, images, wishes, hasMoreWishes } = await getRenderData(inv.id);
 const guestName = guestNameFrom(Astro.url);
 const embed = Astro.url.searchParams.get('embed') === '1'; // di dalam iframe editor: sembunyikan banner
 
@@ -22,7 +22,7 @@ const shown = visibleSections(content, images);
 const hidden = content.sectionOrder.filter((k) => !shown.includes(k)).map((k) => SECTION_LABELS[k]);
 const isLive = inv.status === 'published' && !inv.isDisabled;
 ---
-<InvitationShell invitation={inv} content={content} images={images} guestName={guestName}>
+<InvitationShell invitation={inv} content={content} images={images} wishes={wishes} hasMoreWishes={hasMoreWishes} guestName={guestName}>
   <div slot="banner" class="sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white">
       <div slot="banner" class={`sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white ${embed ? 'hidden' : ''}`}>
       <span>

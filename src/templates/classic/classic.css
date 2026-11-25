@@ -303,3 +303,24 @@
 @media (prefers-reduced-motion: reduce) {
   .cover-media[data-slideshow][data-zoom] .cover-slide { animation: none; }
 }
+
+
+/* ---------- Interaksi kecil foto ---------- */
+.frame-interactive img,
+.gal-img {
+  transition: transform 0.35s ease;
+}
+.frame-interactive:hover img,
+.group:hover .gal-img {
+  transform: scale(1.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .frame-interactive img,
+  .gal-img {
+    transition: none;
+  }
+  .frame-interactive:hover img,
+  .group:hover .gal-img {
+    transform: none;
+  }
+}

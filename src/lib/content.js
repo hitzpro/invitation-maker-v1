@@ -11,7 +11,7 @@ export const GALLERY_LAYOUTS = ['grid', 'carousel', 'masonry', 'mosaic'];
 export const TIMELINE_STYLES = ['line', 'alternate', 'cards', 'minimal'];
 
 export const FONT_FAMILIES = ['default', 'sans', 'script'];
-export const ORNAMENT_KINDS = ['flower', 'branch', 'corner', 'divider', 'sparkle'];
+export const ORNAMENT_KINDS = ['flower', 'branch', 'corner', 'divider', 'sparkle', 'custom'];
 export const ORNAMENT_POSITIONS = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
 export const ORNAMENT_SIZES = ['sm', 'md', 'lg'];
 
@@ -22,7 +22,7 @@ const defaultFonts = () => Object.fromEntries(FONT_ROLES.map((r) => [r, defaultF
 // ---------- Kontrak ----------
 export const SECTION_ORDER = [
   'cover', 'couple', 'event', 'countdown', 'story',
-  'gallery', 'location', 'rsvp', 'wishes', 'closing',
+  'gallery', 'location', 'gift', 'rsvp', 'wishes', 'closing',
 ];
 export const TIMEZONES = { 'Asia/Jakarta': 'WIB', 'Asia/Makassar': 'WITA', 'Asia/Jayapura': 'WIT' };
 export const EVENT_SLOTS = [
@@ -39,7 +39,7 @@ export const PHOTO_ROLES = [
   { value: 'gallery', label: 'Galeri' },
 ];
 
-const emptyPerson = () => ({ name: '', fullName: '', parents: '', photoId: null });
+const emptyPerson = () => ({ name: '', fullName: '', parents: '', photoId: null, photoPos: { x: 50, y: 50 } });
 
 const defaultStyle = (overrides = {}) => ({
   surface: 'plain',
@@ -74,6 +74,13 @@ export function defaultContent() {
       gallery: { enabled: true, imageIds: [], style: defaultStyle({ layout: 'grid' }) },
       location: {
         enabled: true, venueName: '', address: '', mapsUrl: '',
+        style: defaultStyle({ layout: 'centered' }),
+      },
+      gift: {
+        enabled: true,
+        intro: 'Doa restu Anda merupakan karunia yang sangat berarti bagi kami. Jika ingin memberi tanda kasih, dapat melalui rekening berikut:',
+        qrisImageId: null,
+        accounts: [],
         style: defaultStyle({ layout: 'centered' }),
       },
       rsvp: { enabled: true, style: defaultStyle({ surface: 'white' }) },
@@ -111,7 +118,12 @@ export function normalizeContent(raw) {
     sections[key].fonts = mergeFonts(base.sections[key].fonts, own.fonts);
   }
   for (const who of ['bride', 'groom']) {
-    sections.couple[who] = { ...emptyPerson(), ...asObject(asObject(srcSections.couple)[who]) };
+    const rawPerson = asObject(asObject(srcSections.couple)[who]);
+    sections.couple[who] = {
+      ...emptyPerson(),
+      ...rawPerson,
+      photoPos: { x: 50, y: 50, ...asObject(rawPerson.photoPos) },
+    };
   }
 
   const srcTheme = asObject(src.theme);
@@ -123,17 +135,17 @@ export function normalizeContent(raw) {
   };
 
   const order = src.sectionOrder;
-  const validOrder =
-    Array.isArray(order) &&
-    order.length === SECTION_ORDER.length &&
-    SECTION_ORDER.every((k) => order.includes(k));
+  const validOrder = Array.isArray(order) && order.every((k) => SECTION_ORDER.includes(k));
+  const mergedOrder = validOrder ? [...new Set([...order, ...SECTION_ORDER])] : base.sectionOrder;
 
   return {
     version: 1,
     theme,
-    sectionOrder: validOrder ? order : base.sectionOrder,
+    sectionOrder: mergedOrder,
     sections,
-    decorations: Array.isArray(src.decorations) ? src.decorations : [],
+    decorations: Array.isArray(src.decorations)
+      ? src.decorations.map((d) => ({ assetId: null, ...asObject(d) }))
+      : [],
     music: { ...base.music, ...asObject(src.music) },
   };
 }
@@ -410,6 +422,7 @@ export function removeAssetReferences(invitationId, assetId) {
     if (s.cover.imageId === assetId) s.cover.imageId = null;
     if (s.couple.bride.photoId === assetId) s.couple.bride.photoId = null;
     if (s.couple.groom.photoId === assetId) s.couple.groom.photoId = null;
+    if (s.gift?.qrisImageId === assetId) s.gift.qrisImageId = null;
     s.gallery.imageIds = s.gallery.imageIds.filter((id) => id !== assetId);
     if (c.music.assetId === assetId) c.music.assetId = null;
     
@@ -417,6 +430,8 @@ export function removeAssetReferences(invitationId, assetId) {
     for (const sec of Object.values(s)) {
       if (sec.style?.bg?.imageId === assetId) sec.style.bg.imageId = null;
     }
+
+    c.decorations = c.decorations.filter((d) => d.assetId !== assetId);
     return c;
   });
 }
