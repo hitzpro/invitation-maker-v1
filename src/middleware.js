@@ -2,6 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { SESSION_COOKIE, validateSession } from './lib/session.js';
 import { assertEnv, env } from './lib/env.js';
 import { isDemoMode } from './lib/demo.js';
+import { maybeSendLocalTelemetryPing } from './lib/telemetry.js';
 
 assertEnv();
 
@@ -24,6 +25,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const demoMode = isDemoMode();
   context.locals.demoMode = demoMode;
   context.locals.user = null;
+
+  maybeSendLocalTelemetryPing(demoMode);
 
   if (!demoMode) {
     const token = context.cookies.get(SESSION_COOKIE)?.value;

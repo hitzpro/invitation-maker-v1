@@ -1,0 +1,405 @@
+---
+import '../styles/global.css';
+import { getAppName } from '../lib/settings.js';
+import { getCreatorBranding } from '../lib/branding.js';
+import { isDemoMode } from '../lib/demo.js';
+import { env } from '../lib/env.js';
+import { clientIp, isRateLimited } from '../lib/guest.js';
+import {
+  clearOwnerCookie,
+  isOwnerAuthorized,
+  isOwnerDashboardEnabled,
+  setOwnerCookie,
+  verifyOwnerPasscode,
+} from '../lib/owner-auth.js';
+import { getGithubProjectStats, resolveGithubRepoSlug } from '../lib/github-stats.js';
+import { getTelemetrySummary } from '../lib/telemetry.js';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+
+if (!isOwnerDashboardEnabled()) {
+  Astro.response.status = 404;
+  return Astro.rewrite('/404');
+}
+
+const appName = await getAppName();
+const creator = getCreatorBranding();
+const demoMode = isDemoMode(Astro.url);
+
+function validSameOrigin(req) {
+  const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || '').split(',')[0].trim();
+  if (!host) return false;
+  const origin = req.headers.get('origin');
+  if (origin) {
+    if (origin === 'null') return false;
+    try {
+      return new URL(origin).host === host;
+    } catch {
+      return false;
+    }
+  }
+  const referer = req.headers.get('referer');
+  if (referer) {
+    try {
+      return new URL(referer).host === host;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  if (!validSameOrigin(Astro.request)) {
+    return new Response('Origin tidak valid', { status: 403 });
+  }
+
+  const form = await Astro.request.formData();
+  const action = String(form.get('_action') ?? '');
+  const ip = clientIp(Astro.request, Astro.clientAddress);
+
+  if (action === 'logout') {
+    clearOwnerCookie(Astro.cookies);
+    return Astro.redirect('/owner');
+  }
+
+  if (action === 'login') {
+    if (isRateLimited(`owner-login:${ip}`, 10, 15 * 60 * 1000)) {
+      Astro.response.status = 429;
+      error = 'Terlalu banyak percobaan passcode. Coba lagi 15 menit lagi.';
+    } else {
+      const passcode = String(form.get('passcode') ?? '').trim();
+      const ok = Boolean(passcode && verifyOwnerPasscode(passcode));
+      if (!ok) {
+        error = 'Passcode pemilik salah.';
+      } else {
+        setOwnerCookie(Astro.cookies, Astro.request);
+        return Astro.redirect('/owner');
+      }
+    }
+  }
+}
+
+const isAuthorized = isOwnerAuthorized(Astro.cookies);
+
+let github = null;
+let telemetry = null;
+if (isAuthorized) {
+  const forceRefresh = Astro.url.searchParams.get('refresh') === '1';
+  [github, telemetry] = await Promise.all([
+    getGithubProjectStats(forceRefresh),
+    getTelemetrySummary(),
+  ]);
+}
+
+const dailyClones = github?.traffic?.clonesDaily ?? [];
+const maxDailyClones = Math.max(1, ...dailyClones.map((d) => Number(d.count) || 0));
+const fmtDate = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', timeZone: 'Asia/Jakarta' });
+const fmtDateTime = new Intl.DateTimeFormat('id-ID', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Asia/Jakarta',
+});
+
+const repoSlug = resolveGithubRepoSlug();
+const configChecklist = [
+  {
+    name: 'CREATOR_REPO_URL / GITHUB_REPO',
+    ok: Boolean(repoSlug),
+    detail: repoSlug ? `Terhubung ke ${repoSlug}` : 'Belum diatur — stats GitHub belum bisa diambil.',
+  },
+  {
+    name: 'GITHUB_TOKEN',
+    ok: Boolean(env('GITHUB_TOKEN')?.trim()),
+    detail: env('GITHUB_TOKEN')?.trim()
+      ? 'Aktif — dapat membaca data GitHub Traffic Clones (14 hari).'
+      : 'Belum diatur — diperlukan di hosting untuk melihat grafik GitHub Clones.',
+  },
+  {
+    name: 'OWNER_DASHBOARD_KEY',
+    ok: true,
+    detail: 'Aktif dari environment server (hanya pemilik yang mengetahui kunci ini).',
+  },
+  {
+    name: 'CREATOR_TELEMETRY_URL',
+    ok: Boolean(env('CREATOR_TELEMETRY_URL')?.trim()),
+    detail: env('CREATOR_TELEMETRY_URL')?.trim()
+      ? `Mengirim ping anonim ke ${env('CREATOR_TELEMETRY_URL')}`
+      : 'Kosong — atur ke URL publik Anda agar instalasi lokal melapor ke dashboard ini.',
+  },
+];
+---
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Mini Dashboard Pemilik · {appName}</title>
+  </head>
+  <body class="min-h-screen bg-[#F5F0E8] text-[#493D35] antialiased">
+    <header class="border-b border-[#D8C8B5] bg-[#FFFFFF]/90 backdrop-blur-sm">
+      <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
+        <div class="flex items-center gap-3 min-w-0">
+          <a href="/" class="font-display text-lg font-medium tracking-tight text-[#493D35] whitespace-nowrap">
+            {appName}
+          </a>
+          <span class="text-[#D8C8B5]">/</span>
+          <span class="truncate text-xs font-medium uppercase tracking-[0.14em] text-[#8B7561]">
+            Mini Dashboard Pemilik
+          </span>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs shrink-0">
+          <a href="/" class="text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">Beranda</a>
+          <a
+            href={creator.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Repositori GitHub"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] text-[#493D35] hover:border-[#8B7561]"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+            </svg>
+          </a>
+          {isAuthorized && (
+            <form method="POST">
+              <input type="hidden" name="_action" value="logout" />
+              <button class="btn-secondary px-3 py-1.5 text-xs">Keluar</button>
+            </form>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:py-10">
+      {!isAuthorized ? (
+        <div class="mx-auto max-w-md pt-6">
+          <div class="surface-panel p-7 sm:p-8">
+            <p class="text-xs font-medium uppercase tracking-[0.18em] text-[#8B7561]">Akses Khusus Pemilik</p>
+            <h1 class="font-display mt-2 text-2xl font-medium text-[#493D35]">
+              Masuk ke Dashboard Pemilik
+            </h1>
+            <p class="mt-2 text-sm leading-relaxed text-[#6C5E54]">
+              Halaman ini hanya dapat diakses oleh pemilik repositori. Masukkan <code class="font-mono text-xs bg-[#F5F0E8] px-1 py-0.5 rounded">OWNER_DASHBOARD_KEY</code> untuk melihat statistik kloning GitHub dan instalasi aktif.
+            </p>
+
+            {error && <p class="feedback-error mt-4">{error}</p>}
+
+            <form method="POST" class="mt-6 space-y-4">
+              <input type="hidden" name="_action" value="login" />
+              <div>
+                <label for="owner-pass" class="block text-sm font-medium text-[#493D35]">Passcode pemilik</label>
+                <input id="owner-pass" name="passcode" type="password" required
+                  placeholder="Masukkan OWNER_DASHBOARD_KEY" class="input-field mt-1.5" />
+              </div>
+              <button class="btn-primary w-full py-2.5">Buka Dashboard</button>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
+            <div>
+              <p class="text-xs uppercase tracking-[0.16em] text-[#8B7561]">Analitik Proyek</p>
+              <h1 class="font-display mt-1 text-3xl font-medium tracking-tight text-[#493D35]">
+                Pemantauan Kloning &amp; Instalasi
+              </h1>
+              <p class="mt-1 text-sm text-[#6C5E54]">
+                Pantau trafik kloning GitHub (14 hari terakhir) serta instansi lokal aktif yang mengirim ping telemetri anonim.
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <a href="/owner?refresh=1" class="btn-secondary px-4 py-2 text-xs">Muat Ulang Data</a>
+              {!demoMode && Astro.locals.user?.role === 'admin' && (
+                <a href="/admin" class="btn-primary px-4 py-2 text-xs">Panel Admin</a>
+              )}
+            </div>
+          </div>
+
+          {telemetry?.migrationPending && (
+            <p class="feedback-error mt-6">
+              Tabel <code class="font-mono">project_telemetry</code> belum dibuat di PostgreSQL Anda. Jalankan <code class="font-mono">npm run db:migrate</code> di terminal untuk menerapkan migrasi database terbaru.
+            </p>
+          )}
+
+          {/* 4 Metric Strip */}
+          <section class="mt-6 grid grid-cols-2 divide-y divide-[#D8C8B5] overflow-hidden rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF] lg:grid-cols-4 lg:divide-x lg:divide-y-0">
+            <div class="px-5 py-4">
+              <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Instalasi Aktif</p>
+              <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35] sm:text-3xl">
+                {telemetry.totalInstances}
+              </p>
+              <p class="mt-1 text-[11px] text-[#6C5E54]">{telemetry.activeLast7Days} aktif dalam 7 hari terakhir</p>
+            </div>
+
+            <div class="px-5 py-4">
+              <p class="text-xs uppercase tracking-wider text-[#6C5E54]">GitHub Clones (14h)</p>
+              <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35] sm:text-3xl">
+                {github?.traffic ? github.traffic.clonesCount : '—'}
+              </p>
+              <p class="mt-1 text-[11px] text-[#6C5E54]">
+                {github?.traffic
+                  ? `${github.traffic.clonesUniques} peng-clone unik`
+                  : github?.tokenPresent
+                    ? 'Token belum punya izin traffic'
+                    : 'Butuh GITHUB_TOKEN di server'}
+              </p>
+            </div>
+
+            <div class="px-5 py-4">
+              <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Stars &amp; Forks</p>
+              <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35] sm:text-3xl">
+                {github && !github.error && github.configured ? `${github.stars} / ${github.forks}` : '—'}
+              </p>
+              <p class="mt-1 text-[11px] text-[#6C5E54]">
+                {github?.repoSlug ? github.repoSlug : 'Repo GitHub belum diatur'}
+              </p>
+            </div>
+
+            <div class="px-5 py-4">
+              <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total Sesi Ping</p>
+              <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35] sm:text-3xl">
+                {telemetry.totalPings}
+              </p>
+              <p class="mt-1 text-[11px] text-[#6C5E54]">
+                {github?.traffic?.viewsUniques != null
+                  ? `${github.traffic.viewsUniques} pengunjung repo unik (14h)`
+                  : 'Ping anonim dari instalasi lokal'}
+              </p>
+            </div>
+          </section>
+
+          {/* 2-Column Data Panels */}
+          <div class="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+            {/* GitHub Traffic Clones */}
+            <section class="surface-panel p-6">
+              <div class="flex items-start justify-between gap-3 border-b border-[#D8C8B5] pb-4">
+                <div>
+                  <h2 class="font-display text-lg font-medium text-[#493D35]">Trafik Kloning GitHub (14 Hari)</h2>
+                  <p class="mt-0.5 text-xs text-[#6C5E54]">Data resmi GitHub Traffic API (menggulir setiap 14 hari).</p>
+                </div>
+                {github?.htmlUrl && (
+                  <a href={github.htmlUrl} target="_blank" rel="noopener noreferrer"
+                    class="text-xs font-medium text-[#8B7561] underline underline-offset-4 hover:text-[#493D35]">
+                    Lihat Repo
+                  </a>
+                )}
+              </div>
+
+              {github?.error ? (
+                <p class="mt-4 text-sm text-[#A34E4E]">{github.error}</p>
+              ) : github?.trafficError ? (
+                <p class="mt-4 text-sm text-[#B17C42]">{github.trafficError}</p>
+              ) : !github?.tokenPresent ? (
+                <div class="mt-4 space-y-2 text-xs leading-relaxed text-[#6C5E54]">
+                  <p>
+                    Statistik publik (Stars/Forks) sudah terbaca, namun jumlah <strong>git clone</strong> bersifat privat di GitHub sehingga memerlukan Personal Access Token.
+                  </p>
+                  <p>
+                    Tambahkan <code class="font-mono bg-[#F5F0E8] px-1.5 py-0.5 rounded">GITHUB_TOKEN</code> (izin <em>Administration / Metadata Read</em>) di environment hosting Anda untuk menampilkan grafik kloning harian di sini.
+                  </p>
+                </div>
+              ) : dailyClones.length === 0 ? (
+                <p class="mt-4 text-sm text-[#6C5E54]">Belum ada aktivitas kloning tercatat dalam 14 hari terakhir.</p>
+              ) : (
+                <ul class="mt-4 space-y-2.5 text-xs">
+                  {dailyClones.slice(-14).map((day) => {
+                    const pct = Math.round(((Number(day.count) || 0) / maxDailyClones) * 100);
+                    return (
+                      <li class="grid grid-cols-[64px_1fr_76px] items-center gap-3">
+                        <span class="tabular-nums text-[#6C5E54]">{fmtDate.format(new Date(day.timestamp))}</span>
+                        <div class="h-2 overflow-hidden rounded-full bg-[#EFE8DC]">
+                          <div class="h-full bg-[#8B7561]" style={`width: ${pct}%`}></div>
+                        </div>
+                        <span class="text-right tabular-nums font-medium text-[#493D35]">
+                          {day.count} <span class="font-normal text-[#6C5E54]">({day.uniques} unik)</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {/* Anonymous Active Local Installations */}
+            <section class="surface-panel p-6">
+              <div class="flex items-start justify-between gap-3 border-b border-[#D8C8B5] pb-4">
+                <div>
+                  <h2 class="font-display text-lg font-medium text-[#493D35]">Instalasi Lokal Terdeteksi</h2>
+                  <p class="mt-0.5 text-xs text-[#6C5E54]">ID acak anonim tanpa data pribadi, email, atau kredensial pengguna.</p>
+                </div>
+                {telemetry.osBreakdown.length > 0 && (
+                  <div class="text-right text-[11px] text-[#6C5E54]">
+                    {telemetry.osBreakdown.map((o) => `${o.name}: ${o.count}`).join(' · ')}
+                  </div>
+                )}
+              </div>
+
+              {telemetry.recentInstances.length === 0 ? (
+                <div class="mt-4 space-y-2 text-xs leading-relaxed text-[#6C5E54]">
+                  <p>Belum ada instansi lokal yang melapor ke server ini.</p>
+                  <p>
+                    Agar pengguna yang men-clone repo mengirim ping anonim, isi variabel <code class="font-mono bg-[#F5F0E8] px-1.5 py-0.5 rounded">CREATOR_TELEMETRY_URL</code> di <code class="font-mono bg-[#F5F0E8] px-1.5 py-0.5 rounded">.env.example</code> dengan URL deployment publik Anda sebelum di-push ke GitHub.
+                  </p>
+                </div>
+              ) : (
+                <div class="mt-4 overflow-x-auto">
+                  <table class="w-full text-left text-xs">
+                    <thead class="border-b border-[#D8C8B5] text-[11px] uppercase tracking-wider text-[#6C5E54]">
+                      <tr>
+                        <th class="pb-2 font-medium">ID Anonim</th>
+                        <th class="pb-2 font-medium">OS / Node</th>
+                        <th class="pb-2 font-medium">Versi</th>
+                        <th class="pb-2 font-medium text-right">Ping</th>
+                        <th class="pb-2 font-medium text-right">Terakhir Aktif</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#D8C8B5]/70">
+                      {telemetry.recentInstances.map((inst) => (
+                        <tr>
+                          <td class="py-2.5 font-mono text-[#493D35]">{inst.shortId}</td>
+                          <td class="py-2.5 text-[#6C5E54]">
+                            {inst.os}{inst.nodeVersion ? ` · v${inst.nodeVersion}` : ''}
+                          </td>
+                          <td class="py-2.5 tabular-nums text-[#493D35]">v{inst.version}</td>
+                          <td class="py-2.5 text-right tabular-nums font-medium text-[#493D35]">{inst.pingCount}</td>
+                          <td class="py-2.5 text-right tabular-nums text-[#6C5E54]">
+                            {fmtDateTime.format(new Date(inst.lastSeenAt))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Configuration Checklist */}
+          <section class="surface-panel mt-8 p-6">
+            <h2 class="font-display text-lg font-medium text-[#493D35]">Checklist Konfigurasi Pemilik</h2>
+            <p class="mt-1 text-xs text-[#6C5E54]">
+              Pastikan variabel berikut terpasang di environment deployment publik Anda agar pelacakan berjalan penuh.
+            </p>
+            <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+              {configChecklist.map((item) => (
+                <div class="rounded-[10px] border border-[#D8C8B5] bg-[#F5F0E8]/55 p-4">
+                  <div class="flex items-center justify-between gap-2">
+                    <dt class="font-mono text-xs font-medium text-[#493D35]">{item.name}</dt>
+                    <span class={'status-tag ' + (item.ok ? 'status-success' : 'status-neutral')}>
+                      {item.ok ? 'Aktif' : 'Belum'}
+                    </span>
+                  </div>
+                  <dd class="mt-1.5 text-xs text-[#6C5E54]">{item.detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </>
+      )}
+    </main>
+  </body>
+</html>

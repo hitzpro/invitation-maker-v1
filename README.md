@@ -193,6 +193,11 @@ npm run dev
 | `CREATOR_GITHUB_USERNAME` | Tidak | Username GitHub pembuat untuk watermark footer & ikon navbar. |
 | `CREATOR_GITHUB_URL` | Tidak | URL profil GitHub pembuat (otomatis diturunkan dari username bila kosong). |
 | `CREATOR_REPO_URL` | Tidak | URL repositori GitHub proyek untuk tombol navbar & panduan clone. |
+| `OWNER_DASHBOARD_KEY` | Tidak | Passcode rahasia pemilik repositori. `/owner` hanya aktif jika variabel ini diisi di server pemilik. |
+| `GITHUB_REPO` | Tidak | Slug repo eksplisit `owner/repo` (otomatis diambil dari `CREATOR_REPO_URL` bila kosong). |
+| `GITHUB_TOKEN` | Tidak | GitHub PAT (*Administration / Metadata Read*) untuk membaca grafik 14 hari *clones* & *views* di `/owner`. |
+| `CREATOR_TELEMETRY_URL` | Tidak | URL publik server pemilik tempat instalasi lokal mengirim ping anonim harian (`POST /api/telemetry/ping`). |
+| `DISABLE_TELEMETRY` | Tidak | Set `true` pada instalasi lokal jika tidak ingin mengirim ping telemetri anonim ke pemilik proyek. |
 
 ---
 
@@ -238,8 +243,22 @@ Fitur sinkronisasi di `/admin` (`src/lib/updater.js` + `src/pages/api/admin/upda
 
 ---
 
-### 7. Deployment Produksi (Self-Hosted Server / VPS)
+### 7. Deployment Produksi (Vercel & Self-Hosted VPS)
 
+#### A. Deploy ke Vercel (Disarankan untuk Demo Showcase + `/owner` + Telemetry Receiver)
+Proyek ini mendeteksi `process.env.VERCEL` secara otomatis di `astro.config.mjs` dan beralih ke adapter `@astrojs/vercel`. Cukup impor repositori GitHub di Vercel dan atur *Environment Variables* berikut:
+
+| Variabel | Nilai di Vercel |
+| :--- | :--- |
+| `DEMO_MODE` | `true` *(karena Vercel serverless tidak menyimpan file `data/uploads/` secara permanen)* |
+| `DATABASE_URL` | Connection string Neon / Supabase PostgreSQL agar data ping `/owner` tersimpan permanen |
+| `APP_SECRET` | String acak minimal 16 karakter |
+| `APP_URL` | URL publik Vercel Anda (mis. `https://nama-proyek.vercel.app`) |
+| `OWNER_DASHBOARD_KEY` | Passcode rahasia Anda untuk membuka `/owner` |
+| `GITHUB_TOKEN` | GitHub PAT (*Administration: Read-only*) untuk grafik *clones* 14 hari |
+| `CREATOR_GITHUB_USERNAME` / `CREATOR_REPO_URL` | Username & URL repo GitHub Anda |
+
+#### B. Self-Hosted Server / VPS (Mode Penuh + Upload Media Lokal)
 ```bash
 npm ci
 npm run db:migrate
@@ -249,6 +268,17 @@ NODE_ENV=production npm start
 
 - Gunakan *process manager* seperti **PM2** atau **systemd** dan letakkan di balik reverse proxy (**Nginx / Caddy**) dengan HTTPS aktif.
 - Pastikan `APP_URL` di `.env` menggunakan protokol `https://` agar header `Strict-Transport-Security` serta tautan Open Graph (`/og/[slug].jpg`) terbentuk dengan benar.
+
+---
+
+### 8. Mini Dashboard Pemilik & Telemetri Anonim (`/owner`)
+
+Pemilik repositori dapat memantau adopsi proyek melalui rute terproteksi **`/owner`** (`noindex, nofollow`):
+
+1. **Metrik GitHub (`src/lib/github-stats.js`)**: Mengambil jumlah *Stars*, *Forks*, serta grafik trafik **14 hari terakhir (`clones` & `views`)** dari GitHub REST API menggunakan `GITHUB_TOKEN` di sisi server.
+2. **Ping Instalasi Lokal Anonim (`/api/telemetry/ping`)**: Saat `CREATOR_TELEMETRY_URL` diisi (mis. di `.env.example` yang di-commit ke GitHub), instalasi lokal (`DEMO_MODE=false`) mengirim ping maksimal 1x per 24 jam berisi UUID acak (`instanceId`), versi aplikasi, OS, dan versi mayor Node.js — **tanpa data pribadi, nama tamu, alamat email, atau isi undangan**.
+3. **Opt-Out Lokal**: Pengguna lokal dapat menonaktifkan ping kapan saja dengan mengatur `DISABLE_TELEMETRY=true` di `.env`.
+4. **Akses Khusus Pemilik (`/owner`)**: Rute `/owner` otomatis dinonaktifkan (`404`) pada instalasi lain dan **hanya aktif** apabila `OWNER_DASHBOARD_KEY` dikonfigurasi di environment server Anda, dilindungi cookie bertanda tangan `HttpOnly` serta *rate limiting*.
 
 </details>
 

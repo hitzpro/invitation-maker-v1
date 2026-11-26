@@ -103,3 +103,15 @@ export const invitationGuests = pgTable('invitation_guests', {
   sentAt: timestamp('sent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index('guests_invitation_idx').on(t.invitationId)]);
+
+// ---------- project_telemetry (statistik instalasi anonim) ----------
+export const projectTelemetry = pgTable('project_telemetry', {
+  instanceId: text('instance_id').primaryKey(),
+  version: text('version').notNull().default('0.0.1'),
+  os: text('os').notNull().default('unknown'),
+  nodeVersion: text('node_version').notNull().default(''),
+  mode: text('mode').notNull().default('local'),
+  pingCount: integer('ping_count').notNull().default(1),
+  firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+});

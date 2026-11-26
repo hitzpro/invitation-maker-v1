@@ -50,7 +50,12 @@ let usingFallback = false;
 if (connectionString) {
   let pool;
   try {
-    pool = new pg.Pool({ connectionString, connectionTimeoutMillis: 1500 });
+    const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+    pool = new pg.Pool({
+      connectionString,
+      connectionTimeoutMillis: 5000,
+      max: isVercel ? 3 : 10,
+    });
     await pool.query('SELECT 1');
     db = drizzle(pool, { schema });
   } catch (err) {

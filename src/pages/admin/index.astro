@@ -8,6 +8,7 @@ import { guestMessages, invitations, rsvps, sessions, users } from '../../db/sch
 import { deleteInvitationAsAdmin, isUuid } from '../../lib/invitations.js';
 import { hashPassword } from '../../lib/password.js';
 import { getAppName, setAppName, isRegistrationAllowed, setRegistrationAllowed } from '../../lib/settings.js';
+import { isOwnerDashboardEnabled } from '../../lib/owner-auth.js';
 
 const admin = Astro.locals.user;
 let notice = '';
@@ -123,7 +124,12 @@ const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'A
       <h1 class="font-display mt-1 text-3xl font-medium tracking-tight text-[#493D35]">Panel Admin</h1>
       <p class="mt-1 text-sm text-[#6C5E54]">Masuk sebagai {admin.name} ({admin.email})</p>
     </div>
-    <a href="/dashboard" class="btn-secondary">Kembali ke Dashboard</a>
+    <div class="flex flex-wrap items-center gap-2.5">
+      {isOwnerDashboardEnabled() && (
+        <a href="/owner" class="btn-secondary">Statistik Pemilik</a>
+      )}
+      <a href="/dashboard" class="btn-secondary">Kembali ke Dashboard</a>
+    </div>
   </div>
 
   {notice && <p class="feedback-success mt-6">{notice}</p>}
