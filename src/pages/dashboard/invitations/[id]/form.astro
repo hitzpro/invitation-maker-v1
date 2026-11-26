@@ -36,9 +36,8 @@ let errors = {};
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const raw = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string'));
-  values = raw; // pertahankan isian user kalau ada error
+  values = raw;
 
-  // assetIds hanya berisi gambar milik undangan ini
   const result = validateStep(step.key, raw, { assetIds: assets.map((a) => a.id) });
   if (result.errors) {
     errors = result.errors;
@@ -55,101 +54,141 @@ if (Astro.request.method === 'POST') {
 const v = (name) => values[name] ?? '';
 const e = (name) => errors[name] ?? '';
 ---
-<AppLayout title={`Formulir: ${inv.title}`}>
-  <a href={`/dashboard/invitations/${id}`} class="text-sm underline">← Kembali ke ringkasan</a>
-  <h1 class="text-2xl font-bold mt-2">Isi Undangan</h1>
-  <p class="text-sm text-gray-600">{inv.title}</p>
-  <a href={`/dashboard/invitations/${id}/preview`} target="_blank" rel="noopener" class="text-sm underline">Lihat preview ↗</a>
+<AppLayout
+  title={`Formulir · ${inv.title}`}
+  invitationNav={{ id: inv.id, title: inv.title, method: inv.method, active: 'form' }}
+>
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
+    <div>
+      <a href={`/dashboard/invitations/${id}`} class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+        Kembali ke Ringkasan
+      </a>
+      <h1 class="font-display mt-2 text-3xl font-medium tracking-tight text-[#493D35]">Isi Data Undangan</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">{inv.title} · Formulir Otomatis</p>
+    </div>
+    <a href={`/dashboard/invitations/${id}/preview`} target="_blank" rel="noopener" class="btn-secondary">
+      Lihat Preview
+    </a>
+  </div>
 
-  <ol class="mt-4 flex gap-2 flex-wrap text-sm">
-    {STEPS.map((s) => (
-      <li>
-        <a href={`/dashboard/invitations/${id}/form?step=${s.n}`}
-          class={'rounded px-3 py-1 border ' + (s.n === step.n ? 'bg-black text-white border-black' : 'hover:bg-gray-100')}>
-          {s.n}. {s.label}
-        </a>
-      </li>
-    ))}
-  </ol>
+  <!-- Horizontal Step Indicator -->
+  <nav aria-label="Tahapan formulir" class="mt-6">
+    <ol class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {STEPS.map((s) => {
+        const isCurrent = s.n === step.n;
+        const isDone = s.n < step.n;
+        return (
+          <li>
+            <a href={`/dashboard/invitations/${id}/form?step=${s.n}`}
+              aria-current={isCurrent ? 'step' : undefined}
+              class={
+                'flex items-center justify-between rounded-[10px] border px-3.5 py-2.5 text-sm transition-colors ' +
+                (isCurrent
+                  ? 'border-[#8B7561] bg-[#8B7561] font-medium text-white'
+                  : isDone
+                    ? 'border-[#8B7561]/60 bg-[#FFFFFF] text-[#493D35] hover:bg-[#F5F0E8]'
+                    : 'border-[#D8C8B5] bg-[#FFFFFF] text-[#6C5E54] hover:border-[#8B7561] hover:text-[#493D35]')
+              }>
+              <span class="truncate">{s.n}. {s.label}</span>
+              <span class={'ml-2 text-[11px] tabular-nums ' + (isCurrent ? 'text-white/85' : 'text-[#6C5E54]')}>
+                {isCurrent ? 'Aktif' : isDone ? 'Selesai' : ''}
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  </nav>
 
   {step.key === 'photos' && (
-    <section class="mt-6 max-w-2xl bg-white border rounded-lg p-6">
-      <h2 class="font-semibold">Unggah foto</h2>
-      <p class="text-sm text-gray-600 mb-3">
-        JPEG atau PNG, maksimal 20 MB per file. Bisa memilih beberapa file sekaligus
-        ({assets.length}/{MAX_ASSETS_PER_INVITATION} gambar). Unggah dulu, lalu tentukan fungsi tiap foto di bawah.
+    <section class="surface-panel mt-6 max-w-3xl p-6 sm:p-7">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Unggah Foto Undangan</h2>
+      <p class="mt-1 mb-4 text-sm text-[#6C5E54]">
+        Format JPEG atau PNG, maksimal 20 MB per file. Bisa memilih beberapa file sekaligus
+        (<span class="tabular-nums">{assets.length}/{MAX_ASSETS_PER_INVITATION}</span> gambar).
+        Unggah terlebih dahulu, lalu tentukan peran tiap foto di bawah.
       </p>
       <UploadBox invitationId={inv.id} />
     </section>
   )}
 
-  <form method="POST" class="mt-6 max-w-2xl bg-white border rounded-lg p-6 space-y-6">
-    <h2 class="font-semibold">Langkah {step.n} dari {STEPS.length}: {step.label}</h2>
-    {errors._form && <p class="text-sm bg-red-50 text-red-700 border border-red-200 rounded px-3 py-2">{errors._form}</p>}
+  <form method="POST" class="surface-panel mt-6 max-w-3xl space-y-8 p-6 sm:p-8">
+    <div class="border-b border-[#D8C8B5]/80 pb-4">
+      <p class="text-xs uppercase tracking-[0.14em] text-[#6C5E54]">Langkah {step.n} dari {STEPS.length}</p>
+      <h2 class="font-display mt-1 text-xl font-medium text-[#493D35]">{step.label}</h2>
+    </div>
+
+    {errors._form && <p class="feedback-error">{errors._form}</p>}
 
     {step.key === 'couple' && (
-      <>
+      <div class="space-y-8">
         <Field name="intro" label="Kalimat pembuka (opsional)" rows="3" maxlength="500"
           value={v('intro')} error={e('intro')}
-          hint="Misalnya ayat atau kutipan yang ingin ditampilkan di awal undangan." />
+          hint="Misalnya ayat suci atau kutipan hangat yang ingin ditampilkan di awal bagian mempelai." />
 
-        <fieldset class="space-y-4">
-          <legend class="font-medium">Mempelai Wanita</legend>
-          <Field name="bride_name" label="Nama panggilan" required maxlength="40" value={v('bride_name')} error={e('bride_name')} />
-          <Field name="bride_fullName" label="Nama lengkap" required maxlength="100" value={v('bride_fullName')} error={e('bride_fullName')} />
+        <fieldset class="space-y-4 border-t border-[#D8C8B5]/80 pt-6">
+          <legend class="font-display text-base font-medium text-[#493D35]">Mempelai Wanita</legend>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <Field name="bride_name" label="Nama panggilan" required maxlength="40" value={v('bride_name')} error={e('bride_name')} />
+            <Field name="bride_fullName" label="Nama lengkap" required maxlength="100" value={v('bride_fullName')} error={e('bride_fullName')} />
+          </div>
           <Field name="bride_parents" label="Putri dari (orang tua)" maxlength="200" value={v('bride_parents')} error={e('bride_parents')}
             placeholder="Bapak ... dan Ibu ..." />
         </fieldset>
 
-        <fieldset class="space-y-4">
-          <legend class="font-medium">Mempelai Pria</legend>
-          <Field name="groom_name" label="Nama panggilan" required maxlength="40" value={v('groom_name')} error={e('groom_name')} />
-          <Field name="groom_fullName" label="Nama lengkap" required maxlength="100" value={v('groom_fullName')} error={e('groom_fullName')} />
+        <fieldset class="space-y-4 border-t border-[#D8C8B5]/80 pt-6">
+          <legend class="font-display text-base font-medium text-[#493D35]">Mempelai Pria</legend>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <Field name="groom_name" label="Nama panggilan" required maxlength="40" value={v('groom_name')} error={e('groom_name')} />
+            <Field name="groom_fullName" label="Nama lengkap" required maxlength="100" value={v('groom_fullName')} error={e('groom_fullName')} />
+          </div>
           <Field name="groom_parents" label="Putra dari (orang tua)" maxlength="200" value={v('groom_parents')} error={e('groom_parents')}
             placeholder="Bapak ... dan Ibu ..." />
         </fieldset>
-      </>
+      </div>
     )}
 
     {step.key === 'event' && (
-      <>
-        <div>
-          <label for="timezone" class="block text-sm font-medium">Zona waktu acara</label>
-          <select id="timezone" name="timezone" class="mt-1 border rounded px-3 py-2">
+      <div class="space-y-8">
+        <div class="max-w-xs">
+          <label for="timezone" class="block text-sm font-medium text-[#493D35]">Zona waktu acara</label>
+          <select id="timezone" name="timezone" class="input-field mt-1.5">
             {Object.entries(TIMEZONES).map(([tz, label]) => (
               <option value={tz} selected={v('timezone') === tz}>{label}</option>
             ))}
           </select>
-          {e('timezone') && <p class="text-sm text-red-600 mt-1">{e('timezone')}</p>}
+          {e('timezone') && <p class="mt-1 text-sm text-[#A34E4E]">{e('timezone')}</p>}
         </div>
 
         {EVENT_SLOTS.map((slot) => (
-          <fieldset class="space-y-4 border rounded-lg p-4">
-            <legend class="font-medium px-1">{slot.label}</legend>
-            <div class="grid sm:grid-cols-3 gap-4">
+          <fieldset class="space-y-4 border-t border-[#D8C8B5]/80 pt-6">
+            <legend class="font-display text-base font-medium text-[#493D35]">{slot.label}</legend>
+            <div class="grid gap-4 sm:grid-cols-3">
               <Field type="date" name={`${slot.key}_date`} label="Tanggal" value={v(`${slot.key}_date`)} error={e(`${slot.key}_date`)} />
               <Field type="time" name={`${slot.key}_startTime`} label="Jam mulai" value={v(`${slot.key}_startTime`)} error={e(`${slot.key}_startTime`)} />
               <Field type="time" name={`${slot.key}_endTime`} label="Jam selesai (opsional)" value={v(`${slot.key}_endTime`)} error={e(`${slot.key}_endTime`)} />
             </div>
             <Field name={`${slot.key}_venue`} label="Nama tempat" maxlength="120" value={v(`${slot.key}_venue`)} error={e(`${slot.key}_venue`)} />
             <Field name={`${slot.key}_address`} label="Alamat lengkap" rows="2" maxlength="300" value={v(`${slot.key}_address`)} error={e(`${slot.key}_address`)} />
-            <p class="text-xs text-gray-600">Kosongkan seluruh isian jika acara ini tidak diadakan.</p>
+            <p class="text-xs text-[#6C5E54]">Kosongkan seluruh isian jika acara ini tidak diadakan.</p>
           </fieldset>
         ))}
 
-        <Field name="mapsUrl" type="url" label="Tautan Google Maps (opsional)" maxlength="500"
-          value={v('mapsUrl')} error={e('mapsUrl')} placeholder="https://maps.app.goo.gl/..."
-          hint="Lokasi di undangan mengikuti acara pertama yang kamu isi." />
-      </>
+        <div class="border-t border-[#D8C8B5]/80 pt-6">
+          <Field name="mapsUrl" type="url" label="Tautan Google Maps (opsional)" maxlength="500"
+            value={v('mapsUrl')} error={e('mapsUrl')} placeholder="https://maps.app.goo.gl/..."
+            hint="Lokasi di undangan mengikuti acara pertama yang Anda isi." />
+        </div>
+      </div>
     )}
 
     {step.key === 'story' && (
-      <>
-        <p class="text-sm text-gray-600">Cerita bersifat opsional. Kosongkan jika tidak ingin menampilkannya.</p>
+      <div class="space-y-8">
+        <p class="text-sm text-[#6C5E54]">Kisah perjalanan bersifat opsional. Kosongkan jika tidak ingin menampilkannya.</p>
         {Array.from({ length: STORY_SLOTS }, (_, i) => i + 1).map((i) => (
-          <fieldset class="space-y-4 border rounded-lg p-4">
-            <legend class="font-medium px-1">Cerita {i}</legend>
-            <div class="grid sm:grid-cols-2 gap-4">
+          <fieldset class="space-y-4 border-t border-[#D8C8B5]/80 pt-6">
+            <legend class="font-display text-base font-medium text-[#493D35]">Cerita {i}</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
               <Field name={`story${i}_title`} label="Judul" maxlength="80" value={v(`story${i}_title`)} error={e(`story${i}_title`)} placeholder="Pertemuan pertama" />
               <Field name={`story${i}_date`} label="Waktu" maxlength="40" value={v(`story${i}_date`)} error={e(`story${i}_date`)} placeholder="Mei 2019" />
             </div>
@@ -157,49 +196,60 @@ const e = (name) => errors[name] ?? '';
           </fieldset>
         ))}
 
-        <Field name="closing" label="Pesan penutup (opsional)" rows="3" maxlength="600"
-          value={v('closing')} error={e('closing')} />
-      </>
+        <div class="border-t border-[#D8C8B5]/80 pt-6">
+          <Field name="closing" label="Pesan penutup (opsional)" rows="3" maxlength="600"
+            value={v('closing')} error={e('closing')} />
+        </div>
+      </div>
     )}
 
     {step.key === 'photos' && (
       assets.length === 0 ? (
-        <p class="text-sm text-gray-600">Belum ada foto. Unggah dulu lewat kotak di atas, atau langsung selesaikan formulir tanpa foto.</p>
+        <p class="text-sm text-[#6C5E54]">
+          Belum ada foto. Unggah dulu lewat kotak di atas, atau langsung selesaikan formulir tanpa foto.
+        </p>
       ) : (
-        <>
-          <p class="text-sm text-gray-600">
-            Cover, foto mempelai wanita, dan foto mempelai pria masing-masing hanya bisa satu gambar.
-            Gambar berperan "Galeri" tampil sesuai urutan unggah.
+        <div class="space-y-4">
+          <p class="text-sm text-[#6C5E54]">
+            Cover, foto mempelai wanita, dan foto mempelai pria masing-masing hanya dapat memilih satu gambar.
+            Gambar dengan peran &ldquo;Galeri&rdquo; tampil sesuai urutan unggah.
           </p>
-          <ul class="grid sm:grid-cols-2 gap-4">
+          <ul class="grid gap-4 sm:grid-cols-2">
             {assets.map((a) => (
-              <li class="border rounded-lg p-3 flex gap-3">
+              <li class="flex gap-3.5 rounded-[10px] border border-[#D8C8B5] bg-[#F5F0E8]/40 p-3.5">
                 <img src={`/uploads/${a.filename}`} alt={a.originalName} loading="lazy"
-                  class="w-24 h-24 object-cover rounded border shrink-0" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-gray-600 truncate">{a.originalName}</p>
+                  class="h-20 w-20 shrink-0 rounded-[8px] border border-[#D8C8B5] object-cover" />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-xs text-[#6C5E54]">{a.originalName}</p>
                   <label class="sr-only" for={`role_${a.id}`}>Dipakai sebagai</label>
-                  <select id={`role_${a.id}`} name={`role_${a.id}`} class="mt-1 w-full border rounded px-2 py-1 text-sm">
+                  <select id={`role_${a.id}`} name={`role_${a.id}`} class="input-field mt-1.5 py-1.5 text-xs">
                     {PHOTO_ROLES.map((r) => (
                       <option value={r.value} selected={v(`role_${a.id}`) === r.value}>{r.label}</option>
                     ))}
                   </select>
-                  {e(`role_${a.id}`) && <p class="text-sm text-red-600 mt-1">{e(`role_${a.id}`)}</p>}
+                  {e(`role_${a.id}`) && <p class="mt-1 text-xs text-[#A34E4E]">{e(`role_${a.id}`)}</p>}
                 </div>
               </li>
             ))}
           </ul>
-        </>
+        </div>
       )
     )}
 
-    <div class="flex items-center gap-3">
-      <button class="bg-black text-white rounded px-4 py-2 text-sm">
-        {isLast ? 'Simpan & Selesai' : 'Simpan & Lanjut'}
-      </button>
-      {step.n > 1 && (
-        <a href={`/dashboard/invitations/${id}/form?step=${step.n - 1}`} class="text-sm underline">Langkah sebelumnya</a>
-      )}
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[#D8C8B5]/80 pt-6">
+      <div class="flex items-center gap-3">
+        <button class="btn-primary">
+          {isLast ? 'Simpan & Selesai' : 'Simpan & Lanjut'}
+        </button>
+        {step.n > 1 && (
+          <a href={`/dashboard/invitations/${id}/form?step=${step.n - 1}`} class="btn-secondary">
+            Langkah Sebelumnya
+          </a>
+        )}
+      </div>
+      <a href={`/dashboard/invitations/${id}`} class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+        Keluar ke Ringkasan
+      </a>
     </div>
   </form>
 </AppLayout>

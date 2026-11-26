@@ -61,55 +61,45 @@ const sourceOf = (photo, i) =>
 
   <dialog
     data-lightbox
-    class="m-auto max-h-[95vh] max-w-[95vw] border-0 bg-transparent p-0 backdrop:bg-black/85"
+    class="m-auto max-h-[95vh] max-w-[95vw] border-0 bg-transparent p-0 backdrop:bg-[#493D35]/90"
   >
     <div class="relative select-none">
-      <div data-lightbox-stage class="overflow-hidden">
+      <div data-lightbox-stage class="overflow-hidden rounded-[10px]">
         <img
           data-lightbox-img
           alt=""
           draggable="false"
-          class="max-h-[85vh] max-w-[95vw] origin-center object-contain transition-transform duration-150"
+          class="max-h-[82vh] max-w-[95vw] origin-center object-contain transition-transform duration-150"
         />
       </div>
 
-      <div class="mt-2 flex items-center justify-center gap-2 text-xs text-white">
-        <span data-lightbox-counter class="rounded-full bg-black/60 px-3 py-1"></span>
-        <button type="button" data-zoom-out aria-label="Perkecil" class="h-8 w-8 rounded-full bg-black/60 text-base">
-          −
+      <div class="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-white">
+        <button type="button" data-lightbox-prev aria-label="Foto sebelumnya"
+          class="rounded-[8px] border border-white/25 bg-[#493D35]/85 px-3 py-1.5">
+          Sebelumnya
         </button>
-        <button type="button" data-zoom-reset class="rounded-full bg-black/60 px-3 py-1">
+        <span data-lightbox-counter class="rounded-[8px] border border-white/20 bg-[#493D35]/85 px-3 py-1.5 tabular-nums"></span>
+        <button type="button" data-zoom-out aria-label="Perkecil"
+          class="rounded-[8px] border border-white/25 bg-[#493D35]/85 px-3 py-1.5">
+          Perkecil
+        </button>
+        <button type="button" data-zoom-reset
+          class="rounded-[8px] border border-white/25 bg-[#493D35]/85 px-3 py-1.5 tabular-nums">
           100%
         </button>
-        <button type="button" data-zoom-in aria-label="Perbesar" class="h-8 w-8 rounded-full bg-black/60 text-base">
-          +
+        <button type="button" data-zoom-in aria-label="Perbesar"
+          class="rounded-[8px] border border-white/25 bg-[#493D35]/85 px-3 py-1.5">
+          Perbesar
+        </button>
+        <button type="button" data-lightbox-next aria-label="Foto berikutnya"
+          class="rounded-[8px] border border-white/25 bg-[#493D35]/85 px-3 py-1.5">
+          Berikutnya
+        </button>
+        <button type="button" data-lightbox-close aria-label="Tutup"
+          class="rounded-[8px] border border-white/25 bg-[#8B7561] px-3 py-1.5 font-medium text-white">
+          Tutup
         </button>
       </div>
-
-      <button
-        type="button"
-        data-lightbox-close
-        aria-label="Tutup"
-        class="absolute right-2 top-2 h-10 w-10 rounded-full bg-black/60 text-xl text-white"
-      >
-        ✕
-      </button>
-      <button
-        type="button"
-        data-lightbox-prev
-        aria-label="Foto sebelumnya"
-        class="absolute left-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        data-lightbox-next
-        aria-label="Foto berikutnya"
-        class="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-black/60 text-2xl text-white"
-      >
-        ›
-      </button>
     </div>
   </dialog>
 </section>

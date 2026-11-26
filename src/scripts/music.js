@@ -27,23 +27,27 @@ export function initMusic({ store, invitationId, tracks }) {
     list.replaceChildren();
     if (tracks.length === 0) {
       const li = document.createElement('li');
-      li.className = 'text-sm text-gray-500';
+      li.className = 'text-xs text-[#6C5E54]';
       li.textContent = 'Belum ada lagu diunggah.';
       list.append(li);
     }
     for (const t of tracks) {
       const li = document.createElement('li');
-      li.className = 'flex items-center justify-between gap-2 rounded border px-2 py-1 text-sm';
+      li.className = 'flex items-center justify-between gap-2 rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] px-3 py-1.5 text-xs';
 
       const name = document.createElement('span');
-      name.className = 'truncate';
+      name.className = 'truncate text-[#493D35]';
       name.textContent = t.name;
 
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.textContent = t.id === selected ? 'Dipakai' : 'Pakai';
       btn.disabled = t.id === selected;
-      btn.className = 'shrink-0 rounded border px-2 py-0.5 text-xs disabled:bg-gray-100';
+      btn.className =
+        'shrink-0 rounded-[6px] border px-2.5 py-0.5 text-[11px] font-medium ' +
+        (t.id === selected
+          ? 'border-[#8B7561] bg-[#8B7561] text-white'
+          : 'border-[#D8C8B5] bg-[#F5F0E8] text-[#493D35] hover:border-[#8B7561]');
       btn.addEventListener('click', () => {
         store.set('music.assetId', t.id);
         render();
@@ -64,7 +68,7 @@ export function initMusic({ store, invitationId, tracks }) {
     input.value = '';
     if (!file) return;
 
-    message.className = 'mt-1 text-xs text-gray-600';
+    message.className = 'mt-1.5 text-xs text-[#6C5E54]';
     message.textContent = 'Mengunggah…';
 
     const fd = new FormData();
@@ -74,10 +78,10 @@ export function initMusic({ store, invitationId, tracks }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? 'Gagal mengunggah');
       tracks.push({ id: data.id, name: data.name, url: data.url });
-      store.set('music.assetId', data.id); // langsung dipakai
+      store.set('music.assetId', data.id);
       message.textContent = '';
     } catch (err) {
-      message.className = 'mt-1 text-xs text-red-600';
+      message.className = 'mt-1.5 text-xs text-[#A34E4E]';
       message.textContent = err.message;
     }
     render();

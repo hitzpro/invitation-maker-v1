@@ -32,36 +32,57 @@ if (Astro.request.method === 'POST') {
   }
 }
 ---
-<AppLayout title="Buat Undangan">
-  <a href="/dashboard" class="text-sm underline">← Kembali</a>
-  <h1 class="text-2xl font-bold mt-2">Buat Undangan Baru</h1>
+<AppLayout title="Buat Undangan Baru" activeNav="new">
+  <div class="border-b border-[#D8C8B5] pb-6">
+    <a href="/dashboard" class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+      Kembali ke Dashboard
+    </a>
+    <h1 class="font-display mt-2 text-3xl font-medium tracking-tight text-[#493D35]">Buat Undangan Baru</h1>
+    <p class="mt-1 text-sm text-[#6C5E54]">
+      Tentukan judul undangan dan pilih cara penyusunan yang paling sesuai dengan kebutuhan Anda.
+    </p>
+  </div>
 
-  <form method="POST" class="mt-6 max-w-xl bg-white border rounded-lg p-6 space-y-5">
+  <form method="POST" class="surface-panel mt-8 max-w-2xl space-y-6 p-6 sm:p-8">
     <div>
-      <label for="title" class="block text-sm font-medium">Judul undangan</label>
+      <label for="title" class="block text-sm font-medium text-[#493D35]">Judul undangan</label>
       <input id="title" name="title" value={values.title} required maxlength="120"
-        placeholder="Contoh: Pernikahan Andi & Sarah"
-        class="mt-1 w-full border rounded px-3 py-2" />
-      {errors.title && <p class="text-sm text-red-600 mt-1">{errors.title[0]}</p>}
+        placeholder="Contoh: Pernikahan Andi &amp; Sarah"
+        class="input-field mt-1.5" />
+      {errors.title && <p class="mt-1.5 text-sm text-[#A34E4E]">{errors.title[0]}</p>}
     </div>
 
     <fieldset>
-      <legend class="block text-sm font-medium">Metode pembuatan</legend>
-      <div class="mt-2 grid sm:grid-cols-2 gap-3">
-        <label class="border rounded-lg p-4 cursor-pointer has-[:checked]:border-black has-[:checked]:bg-gray-50">
-          <input type="radio" name="method" value="automatic" checked={values.method === 'automatic'} class="mr-2" />
-          <span class="font-medium">Automatic</span>
-          <span class="block text-sm text-gray-600 mt-1">Isi formulir, sistem menyusun undangan dari template bawaan.</span>
+      <legend class="block text-sm font-medium text-[#493D35]">Metode pembuatan</legend>
+      <div class="mt-2.5 grid gap-4 sm:grid-cols-2">
+        <label class="cursor-pointer rounded-[12px] border border-[#D8C8B5] bg-[#FFFFFF] p-4 transition-colors hover:border-[#8B7561] has-[:checked]:border-[#8B7561] has-[:checked]:bg-[#F5F0E8]/65">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="method" value="automatic" checked={values.method === 'automatic'}
+              class="accent-[#8B7561]" />
+            <span class="text-sm font-medium text-[#493D35]">Formulir Otomatis</span>
+          </div>
+          <span class="mt-2 block text-xs leading-relaxed text-[#6C5E54]">
+            Isi formulir bertahap untuk data mempelai, acara, cerita, dan foto. Sistem menyusun tata letak secara otomatis.
+          </span>
         </label>
-        <label class="border rounded-lg p-4 cursor-pointer has-[:checked]:border-black has-[:checked]:bg-gray-50">
-          <input type="radio" name="method" value="manual" checked={values.method === 'manual'} class="mr-2" />
-          <span class="font-medium">Manual</span>
-          <span class="block text-sm text-gray-600 mt-1">Atur teks, gambar, warna, dan urutan section lewat editor.</span>
+
+        <label class="cursor-pointer rounded-[12px] border border-[#D8C8B5] bg-[#FFFFFF] p-4 transition-colors hover:border-[#8B7561] has-[:checked]:border-[#8B7561] has-[:checked]:bg-[#F5F0E8]/65">
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="method" value="manual" checked={values.method === 'manual'}
+              class="accent-[#8B7561]" />
+            <span class="text-sm font-medium text-[#493D35]">Editor Visual Manual</span>
+          </div>
+          <span class="mt-2 block text-xs leading-relaxed text-[#6C5E54]">
+            Atur warna utama, tipografi, urutan section, ornamen, musik latar, serta galeri secara langsung dengan live preview.
+          </span>
         </label>
       </div>
-      {errors.method && <p class="text-sm text-red-600 mt-1">{errors.method[0]}</p>}
+      {errors.method && <p class="mt-1.5 text-sm text-[#A34E4E]">{errors.method[0]}</p>}
     </fieldset>
 
-    <button class="bg-black text-white rounded px-4 py-2 text-sm">Buat Undangan</button>
+    <div class="flex flex-wrap items-center gap-3 border-t border-[#D8C8B5]/80 pt-5">
+      <button class="btn-primary">Buat Undangan</button>
+      <a href="/dashboard" class="btn-secondary">Batal</a>
+    </div>
   </form>
 </AppLayout>

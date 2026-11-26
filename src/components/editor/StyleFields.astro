@@ -1,14 +1,17 @@
 ---
+import PhotoField from './PhotoField.astro';
+
 const { sectionKey } = Astro.props;
 const base = `sections.${sectionKey}.style`;
 const id = (name) => `f-${sectionKey}-${name}`;
-const selectClass = 'mt-1 w-full rounded border bg-white px-2 py-1.5 text-sm';
+const selectClass = 'input-field mt-1 py-1.5 text-sm';
 
 const SURFACES = [
-  ['plain', 'Polos'],
+  ['plain', 'Polos (Cream)'],
   ['white', 'Putih'],
   ['tint', 'Tint warna tema'],
   ['solid', 'Warna tema penuh'],
+  ['image', 'Foto'],
 ];
 
 const LAYOUT_HINTS = {
@@ -16,6 +19,7 @@ const LAYOUT_HINTS = {
   event: 'Split: kartu acara berdampingan.',
   countdown: 'Split: judul di kiri, hitungan di kanan.',
   location: 'Split: teks di kiri, tombol di kanan.',
+  gift: 'Split: pengantar di kiri, rekening di kanan.',
   closing: 'Split: pesan di kiri, nama di kanan.',
 };
 
@@ -42,23 +46,23 @@ const TIMELINES = [
   ['minimal', 'Minimal'],
 ];
 ---
-<div class="space-y-3 rounded border bg-gray-50 p-3">
-  <p class="text-sm font-medium">Gaya section</p>
+<div class="space-y-4 border-t border-[#D8C8B5] pt-5" data-style-block>
+  <p class="text-xs font-medium uppercase tracking-wider text-[#6C5E54]">Gaya Section</p>
 
   {Object.hasOwn(LAYOUT_HINTS, sectionKey) && (
     <div>
-      <label for={id('layout')} class="block text-xs text-gray-600">Tata letak</label>
+      <label for={id('layout')} class="block text-xs text-[#6C5E54]">Tata letak</label>
       <select id={id('layout')} data-bind={`${base}.layout`} class={selectClass}>
         <option value="centered">Terpusat</option>
         <option value="split">Split (dua kolom)</option>
       </select>
-      <p class="mt-1 text-xs text-gray-500">{LAYOUT_HINTS[sectionKey]}</p>
+      <p class="mt-1 text-xs text-[#6C5E54]">{LAYOUT_HINTS[sectionKey]}</p>
     </div>
   )}
 
   {sectionKey === 'couple' && (
     <div>
-      <label for={id('frame')} class="block text-xs text-gray-600">Bingkai foto mempelai</label>
+      <label for={id('frame')} class="block text-xs text-[#6C5E54]">Bingkai foto mempelai</label>
       <select id={id('frame')} data-bind={`${base}.frame`} class={selectClass}>
         {FRAMES.map(([value, label]) => <option value={value}>{label}</option>)}
       </select>
@@ -67,7 +71,7 @@ const TIMELINES = [
 
   {sectionKey === 'story' && (
     <div>
-      <label for={id('timeline')} class="block text-xs text-gray-600">Gaya timeline</label>
+      <label for={id('timeline')} class="block text-xs text-[#6C5E54]">Gaya timeline</label>
       <select id={id('timeline')} data-bind={`${base}.timeline`} class={selectClass}>
         {TIMELINES.map(([value, label]) => <option value={value}>{label}</option>)}
       </select>
@@ -76,7 +80,7 @@ const TIMELINES = [
 
   {sectionKey === 'gallery' && (
     <div>
-      <label for={id('gallery-layout')} class="block text-xs text-gray-600">Tata letak galeri</label>
+      <label for={id('gallery-layout')} class="block text-xs text-[#6C5E54]">Tata letak galeri</label>
       <select id={id('gallery-layout')} data-bind={`${base}.layout`} class={selectClass}>
         {GALLERY_LAYOUTS.map(([value, label]) => <option value={value}>{label}</option>)}
       </select>
@@ -84,20 +88,39 @@ const TIMELINES = [
   )}
 
   <div>
-    <label for={id('surface')} class="block text-xs text-gray-600">Latar</label>
-    <select id={id('surface')} data-bind={`${base}.surface`} class={selectClass}>
+    <label for={id('surface')} class="block text-xs text-[#6C5E54]">Latar belakang section</label>
+    <select id={id('surface')} data-surface-select data-bind={`${base}.surface`} class={selectClass}>
       {SURFACES.map(([value, label]) => <option value={value}>{label}</option>)}
     </select>
   </div>
 
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" data-bind={`${base}.pattern`} data-style-flag="pattern" /> Pakai pola latar
-  </label>
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" data-bind={`${base}.animate`} data-style-flag="animate" />
-    {sectionKey === 'gallery' || sectionKey === 'story' ? 'Animasi fade-in per item' : 'Animasi fade-in'}
-  </label>
-  <p class="text-xs text-gray-500">
-    Dua kotak centang di atas aktif bila fiturnya dinyalakan di "Tema dan warna" dan opsi "Terapkan ke semua section" dimatikan.
-  </p>
+  <div data-bg-controls class="hidden space-y-3 border-t border-[#D8C8B5]/70 pt-3">
+    <PhotoField path={`${base}.bg.imageId`} label="Foto latar" />
+    <div>
+      <label for={id('bg-opacity')} class="block text-xs text-[#6C5E54]">Opasitas foto</label>
+      <input id={id('bg-opacity')} type="range" min="10" max="100" step="5"
+        data-bind={`${base}.bg.opacity`} data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+    </div>
+    <div>
+      <label for={id('bg-overlay')} class="block text-xs text-[#6C5E54]">Overlay gelap</label>
+      <input id={id('bg-overlay')} type="range" min="0" max="80" step="5"
+        data-bind={`${base}.bg.overlay`} data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+    </div>
+    <p class="text-xs text-[#6C5E54]">Teks otomatis berwarna putih agar kontras di atas foto.</p>
+    <p class="text-xs text-[#A34E4E]" data-error-for={`${base}.bg.imageId`}></p>
+  </div>
+
+  <div class="space-y-2 pt-1">
+    <label class="flex items-center gap-2 text-sm text-[#493D35]">
+      <input type="checkbox" data-bind={`${base}.pattern`} data-style-flag="pattern" class="accent-[#8B7561]" />
+      Pakai pola latar
+    </label>
+    <label class="flex items-center gap-2 text-sm text-[#493D35]">
+      <input type="checkbox" data-bind={`${base}.animate`} data-style-flag="animate" class="accent-[#8B7561]" />
+      {sectionKey === 'gallery' || sectionKey === 'story' ? 'Animasi fade-in per item' : 'Animasi fade-in'}
+    </label>
+    <p class="text-xs leading-relaxed text-[#6C5E54]">
+      Opsi di atas aktif bila fitur global menyala dan &ldquo;Terapkan ke semua section&rdquo; dimatikan.
+    </p>
+  </div>
 </div>

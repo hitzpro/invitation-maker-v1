@@ -4,24 +4,29 @@ import PhotoField from './PhotoField.astro';
 
 const blank = JSON.stringify({ bank: '', number: '', holder: '' });
 ---
-<EField path="sections.gift.intro" label="Kalimat pengantar" rows="3" maxlength="400" />
-<PhotoField path="sections.gift.qrisImageId" label="Gambar QRIS (opsional)" />
+<div class="space-y-5">
+  <EField path="sections.gift.intro" label="Kalimat pengantar" rows="3" maxlength="400" />
+  <PhotoField path="sections.gift.qrisImageId" label="Gambar QRIS (opsional)" />
 
-<div data-list="sections.gift.accounts" data-max="5" data-blank={blank} class="space-y-3">
-  <p data-empty class="text-sm text-gray-500">Belum ada rekening. Section otomatis tersembunyi bila rekening dan QRIS kosong.</p>
-  <div data-items class="space-y-3"></div>
-  <button type="button" data-add-item
-    class="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40">+ Tambah rekening</button>
+  <div data-list="sections.gift.accounts" data-max="5" data-blank={blank} class="space-y-4 border-t border-[#D8C8B5] pt-4">
+    <p data-empty class="text-xs leading-relaxed text-[#6C5E54]">
+      Belum ada rekening. Section otomatis tersembunyi bila rekening dan QRIS kosong.
+    </p>
+    <div data-items class="space-y-4"></div>
+    <button type="button" data-add-item class="btn-secondary w-full py-2 text-xs">
+      Tambah Rekening
+    </button>
 
-  <template>
-    <div class="space-y-2 rounded border p-3">
-      <div class="flex items-center justify-between">
-        <p class="text-sm font-medium">Rekening <span data-item-number></span></p>
-        <button type="button" data-remove-item class="text-sm text-red-600 underline">Hapus</button>
+    <template>
+      <div class="space-y-2.5 border-b border-[#D8C8B5] pb-4">
+        <div class="flex items-center justify-between">
+          <p class="text-xs font-medium uppercase tracking-wider text-[#493D35]">Rekening <span data-item-number></span></p>
+          <button type="button" data-remove-item class="text-xs font-medium text-[#A34E4E] underline underline-offset-4">Hapus</button>
+        </div>
+        <EField path="sections.gift.accounts.__i__.bank" label="Bank / E-Wallet" maxlength="40" placeholder="BCA / Mandiri / GoPay" />
+        <EField path="sections.gift.accounts.__i__.number" label="Nomor rekening / HP" maxlength="40" />
+        <EField path="sections.gift.accounts.__i__.holder" label="Atas nama" maxlength="80" />
       </div>
-      <EField path="sections.gift.accounts.__i__.bank" label="Bank / E-Wallet" maxlength="40" placeholder="BCA / Mandiri / GoPay" />
-      <EField path="sections.gift.accounts.__i__.number" label="Nomor rekening / HP" maxlength="40" />
-      <EField path="sections.gift.accounts.__i__.holder" label="Atas nama" maxlength="80" />
-    </div>
-  </template>
+    </template>
+  </div>
 </div>

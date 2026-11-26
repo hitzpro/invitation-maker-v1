@@ -2,10 +2,11 @@
 const { path, max, label, emptyText = 'Belum ada foto.' } = Astro.props;
 ---
 <div data-photo-gallery={path} data-max={max}>
-  <p class="text-sm font-medium">{label}</p>
-  <p data-gallery-empty class="mt-1 text-sm text-gray-500">{emptyText}</p>
+  <p class="text-sm font-medium text-[#493D35]">{label}</p>
+  <p data-gallery-empty class="mt-1 text-xs text-[#6C5E54]">{emptyText}</p>
   <ul data-gallery-items class="mt-2 grid grid-cols-3 gap-2"></ul>
-  <button type="button" data-gallery-add
-    class="mt-2 rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40">+ Tambah foto</button>
-  <p class="mt-1 text-sm text-red-600" data-error-for={path}></p>
+  <button type="button" data-gallery-add class="btn-secondary mt-2.5 px-3 py-1.5 text-xs">
+    Tambah Foto
+  </button>
+  <p class="mt-1 text-xs text-[#A34E4E]" data-error-for={path}></p>
 </div>

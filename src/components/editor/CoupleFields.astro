@@ -2,43 +2,49 @@
 import EField from './EField.astro';
 import PhotoField from './PhotoField.astro';
 ---
-<EField path="sections.couple.intro" label="Kalimat pembuka" rows="3" maxlength="500"
-  hint="Misalnya ayat atau kutipan yang ingin ditampilkan di awal undangan." />
+<div class="space-y-6">
+  <p class="rounded-[9px] border border-[#D8C8B5] bg-[#F5F0E8]/60 px-3 py-2 text-xs leading-relaxed text-[#6C5E54]">
+    Bagian Mempelai otomatis tampil di preview setelah nama kedua mempelai (wanita &amp; pria) diisi.
+  </p>
 
-<fieldset class="space-y-3 rounded border p-3">
-  <legend class="px-1 text-sm font-medium">Mempelai wanita</legend>
-  <PhotoField path="sections.couple.bride.photoId" label="Foto mempelai wanita" />
-  <div class="grid grid-cols-2 gap-2 rounded bg-gray-50 p-2" data-photo-pos="sections.couple.bride">
-    <label class="block text-xs text-gray-600">Posisi horizontal
-      <input type="range" min="0" max="100" step="1"
-        data-bind="sections.couple.bride.photoPos.x" data-type="number" class="mt-1 w-full" />
-    </label>
-    <label class="block text-xs text-gray-600">Posisi vertikal
-      <input type="range" min="0" max="100" step="1"
-        data-bind="sections.couple.bride.photoPos.y" data-type="number" class="mt-1 w-full" />
-    </label>
-  </div>
-  <EField path="sections.couple.bride.name" label="Nama panggilan" maxlength="40" />
-  <EField path="sections.couple.bride.fullName" label="Nama lengkap" maxlength="100" />
-  <EField path="sections.couple.bride.parents" label="Putri dari (orang tua)" maxlength="200"
-    placeholder="Bapak ... dan Ibu ..." />
-</fieldset>
+  <EField path="sections.couple.intro" label="Kalimat pembuka" rows="3" maxlength="500"
+    hint="Misalnya ayat atau kutipan hangat yang ingin ditampilkan di awal bagian mempelai." />
 
-<fieldset class="space-y-3 rounded border p-3">
-  <legend class="px-1 text-sm font-medium">Mempelai pria</legend>
-  <PhotoField path="sections.couple.groom.photoId" label="Foto mempelai pria" />
-  <div class="grid grid-cols-2 gap-2 rounded bg-gray-50 p-2" data-photo-pos="sections.couple.bride">
-    <label class="block text-xs text-gray-600">Posisi horizontal
-      <input type="range" min="0" max="100" step="1"
-        data-bind="sections.couple.bride.photoPos.x" data-type="number" class="mt-1 w-full" />
-    </label>
-    <label class="block text-xs text-gray-600">Posisi vertikal
-      <input type="range" min="0" max="100" step="1"
-        data-bind="sections.couple.bride.photoPos.y" data-type="number" class="mt-1 w-full" />
-    </label>
-  </div>
-  <EField path="sections.couple.groom.name" label="Nama panggilan" maxlength="40" />
-  <EField path="sections.couple.groom.fullName" label="Nama lengkap" maxlength="100" />
-  <EField path="sections.couple.groom.parents" label="Putra dari (orang tua)" maxlength="200"
-    placeholder="Bapak ... dan Ibu ..." />
-</fieldset>
+  <fieldset class="space-y-3 border-t border-[#D8C8B5] pt-5">
+    <legend class="text-xs font-medium uppercase tracking-wider text-[#6C5E54]">Mempelai Wanita</legend>
+    <PhotoField path="sections.couple.bride.photoId" label="Foto mempelai wanita" />
+    <div class="grid grid-cols-2 gap-3" data-photo-pos="sections.couple.bride">
+      <label class="block text-xs text-[#6C5E54]">Posisi horizontal
+        <input type="range" min="0" max="100" step="1"
+          data-bind="sections.couple.bride.photoPos.x" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+      </label>
+      <label class="block text-xs text-[#6C5E54]">Posisi vertikal
+        <input type="range" min="0" max="100" step="1"
+          data-bind="sections.couple.bride.photoPos.y" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+      </label>
+    </div>
+    <EField path="sections.couple.bride.name" label="Nama panggilan" maxlength="40" />
+    <EField path="sections.couple.bride.fullName" label="Nama lengkap" maxlength="100" />
+    <EField path="sections.couple.bride.parents" label="Putri dari (orang tua)" maxlength="200"
+      placeholder="Bapak ... dan Ibu ..." />
+  </fieldset>
+
+  <fieldset class="space-y-3 border-t border-[#D8C8B5] pt-5">
+    <legend class="text-xs font-medium uppercase tracking-wider text-[#6C5E54]">Mempelai Pria</legend>
+    <PhotoField path="sections.couple.groom.photoId" label="Foto mempelai pria" />
+    <div class="grid grid-cols-2 gap-3" data-photo-pos="sections.couple.groom">
+      <label class="block text-xs text-[#6C5E54]">Posisi horizontal
+        <input type="range" min="0" max="100" step="1"
+          data-bind="sections.couple.groom.photoPos.x" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+      </label>
+      <label class="block text-xs text-[#6C5E54]">Posisi vertikal
+        <input type="range" min="0" max="100" step="1"
+          data-bind="sections.couple.groom.photoPos.y" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+      </label>
+    </div>
+    <EField path="sections.couple.groom.name" label="Nama panggilan" maxlength="40" />
+    <EField path="sections.couple.groom.fullName" label="Nama lengkap" maxlength="100" />
+    <EField path="sections.couple.groom.parents" label="Putra dari (orang tua)" maxlength="200"
+      placeholder="Bapak ... dan Ibu ..." />
+  </fieldset>
+</div>

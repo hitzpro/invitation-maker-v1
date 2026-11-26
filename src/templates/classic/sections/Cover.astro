@@ -2,7 +2,7 @@
 import Decorations from '../Decorations.astro';
 import { fontAttrs, formatDate, sortedEvents } from '../../../lib/render-data.js';
 
-const { invitation, content, images, guestName } = Astro.props;
+const { invitation, content, images, guestName, animate = false } = Astro.props;
 const { cover, couple } = content.sections;
 const decos = (content.decorations ?? []).filter((d) => d.section === 'cover');
 
@@ -16,10 +16,10 @@ const interval = Math.min(15, Math.max(3, Number(cover.slideshow?.interval) || 5
 const zoom = cover.slideshow?.zoom !== false;
 
 const first = sortedEvents(content)[0];
-const bride = couple.bride.name;
-const groom = couple.groom.name;
+const bride = couple.bride.name || couple.bride.fullName;
+const groom = couple.groom.name || couple.groom.fullName;
 ---
-<section id="cover" class="cover" data-layout={layout} {...fontAttrs(cover.fonts)}>
+<section id="cover" class="cover" data-layout={layout} data-animate={animate ? '' : undefined} {...fontAttrs(cover.fonts)}>
   <Decorations items={decos} images={images} />
 
   <div class="cover-media" data-slideshow={slides.length > 1 ? '' : undefined}
@@ -53,7 +53,8 @@ const groom = couple.groom.name;
       </div>
     )}
 
-    <a href="#content" class="mt-8 inline-block rounded-full border border-white px-6 py-3 text-sm">
+    <a href="#content"
+      class="mt-8 inline-block rounded-[8px] border border-white/85 bg-[#493D35]/30 px-7 py-3 text-sm font-medium tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-white hover:text-[#493D35]">
       Buka Undangan
     </a>
   </div>

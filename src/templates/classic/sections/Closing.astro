@@ -6,13 +6,14 @@ const split = closing.style?.layout === 'split';
 const message =
   closing.message ||
   'Merupakan kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.';
-const names =
-  couple.bride.name && couple.groom.name ? `${couple.bride.name} & ${couple.groom.name}` : '';
+const brideName = couple.bride.name || couple.bride.fullName;
+const groomName = couple.groom.name || couple.groom.fullName;
+const names = brideName && groomName ? `${brideName} & ${groomName}` : '';
 ---
-<section id="closing" class={'px-6 py-20 ' + (split ? 'grid grid-cols-2 items-center gap-6 text-left' : 'text-center')}>
+<section id="closing" class={'border-t border-[#D8C8B5]/60 px-6 py-20 ' + (split ? 'grid grid-cols-2 items-center gap-6 text-left' : 'text-center')}>
   <p class="text-sm leading-relaxed whitespace-pre-line">{message}</p>
   <div class={split ? '' : 'mt-8'}>
-    <p class="text-sm">Kami yang berbahagia,</p>
+    <p class="inv-muted text-sm">Kami yang berbahagia,</p>
     {names && <p class={'fx-h inv-title mt-2 ' + (split ? 'text-2xl' : 'text-3xl')}>{names}</p>}
   </div>
 </section>

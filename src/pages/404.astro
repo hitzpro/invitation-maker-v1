@@ -3,12 +3,21 @@ import '../styles/global.css';
 Astro.response.status = 404;
 ---
 <html lang="id">
-  <head><meta charset="utf-8" /><title>404 - Tidak ditemukan</title></head>
-  <body class="min-h-screen grid place-items-center">
-    <div class="text-center">
-      <h1 class="text-4xl font-bold">404</h1>
-      <p class="mt-2">Halaman tidak ditemukan.</p>
-      <a href="/">Kembali ke beranda</a>
-    </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 · Halaman Tidak Ditemukan</title>
+  </head>
+  <body class="grid min-h-screen place-items-center bg-[#F5F0E8] px-6 text-[#493D35] antialiased">
+    <main class="w-full max-w-md border-y border-[#D8C8B5] py-12 text-center">
+      <p class="text-xs uppercase tracking-[0.2em] text-[#6C5E54]">Tidak Ditemukan</p>
+      <h1 class="font-display mt-3 text-6xl font-medium tracking-tight text-[#493D35]">404</h1>
+      <p class="mt-4 text-sm leading-relaxed text-[#6C5E54]">
+        Halaman atau tautan undangan yang Anda cari tidak tersedia atau telah dipindahkan.
+      </p>
+      <div class="mt-7 flex items-center justify-center gap-3">
+        <a href="/" class="btn-primary">Kembali ke Beranda</a>
+      </div>
+    </main>
   </body>
 </html>

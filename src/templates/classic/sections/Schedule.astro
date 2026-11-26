@@ -12,20 +12,20 @@ const split = layout === 'split';
   <div class={'mt-10 ' + (split ? 'grid grid-cols-2 gap-3' : 'space-y-6')}>
     {events.map((ev) => (
       <article class={
-        'inv-line rounded-xl border bg-white text-stone-800 shadow-sm ' +
+        'rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF] text-[#493D35] ' +
         (split ? 'px-4 py-6 ' : 'px-6 py-8 ') +
         (split && events.length === 1 ? 'col-span-2' : '')
       }>
         <h3 class={split ? 'text-xl' : 'text-2xl'}>{ev.label}</h3>
         <p class="mt-3">{formatDate(ev.date)}</p>
-        <p class="text-sm text-stone-600">{formatTime(ev, timezone)}</p>
+        <p class="text-sm text-[#6C5E54]">{formatTime(ev, timezone)}</p>
         {ev.venue && <p class="fx-h mt-4 font-semibold">{ev.venue}</p>}
-        {ev.address && <p class="text-sm text-stone-600 whitespace-pre-line">{ev.address}</p>}
+        {ev.address && <p class="mt-1 text-sm whitespace-pre-line text-[#6C5E54]">{ev.address}</p>}
 
         {invitation.status === 'published' && !invitation.isDisabled && (
           <a href={`/api/public/${invitation.slug}/calendar.ics?i=${events.indexOf(ev)}`}
-            class="mt-4 inline-block rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-700 hover:bg-stone-50">
-            + Simpan ke Kalender
+            class="mt-5 inline-block rounded-[8px] border border-[#D8C8B5] bg-[#F5F0E8] px-3.5 py-1.5 text-xs font-medium text-[#493D35] transition-colors hover:border-[#8B7561]">
+            Simpan ke Kalender
           </a>
         )}
       </article>

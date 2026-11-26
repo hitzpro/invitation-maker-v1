@@ -8,8 +8,8 @@ const track = assetId ? images.get(assetId) : null;
     <audio id="inv-audio" src={track.url} preload="none" loop={loop}
       data-autoplay={autoplay ? 'true' : 'false'} data-volume={volume}></audio>
     <button type="button" id="inv-audio-btn" class="music-btn" aria-label="Putar musik" aria-pressed="false">
-      <svg data-icon="play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-      <svg data-icon="pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      <span data-label="play">Putar Musik</span>
+      <span data-label="pause">Jeda Musik</span>
     </button>
   </>
 )}
@@ -36,13 +36,11 @@ const track = assetId ? images.get(assetId) : null;
       else audio.pause();
     });
 
-    // Autoplay: dicoba langsung, dan bila diblokir browser, dimulai pada interaksi pertama tamu.
-    // Dinonaktifkan di dalam iframe (preview editor).
     if (audio.dataset.autoplay === 'true' && window.self === window.top) {
       const events = ['click', 'touchend', 'keydown'];
       const cleanup = () => events.forEach((ev) => document.removeEventListener(ev, onGesture, true));
       const onGesture = (e) => {
-        if (button.contains(e.target)) return; // tombol musik punya aksinya sendiri
+        if (button.contains(e.target)) return;
         cleanup();
         audio.play().catch(() => {});
       };

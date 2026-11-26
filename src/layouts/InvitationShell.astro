@@ -8,7 +8,7 @@ const Template = resolveTemplate(invitation.templateKey);
 const hasBanner = Astro.slots.has('banner');
 const appName = meta ? await getAppName() : '';
 ---
-<html lang="id" class={'scroll-smooth ' + (hasBanner ? 'scroll-pt-10' : '')}>
+<html lang="id" class={'scroll-smooth ' + (hasBanner ? 'scroll-pt-12' : '')}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -31,7 +31,7 @@ const appName = meta ? await getAppName() : '';
       </>
     )}
   </head>
-  <body>
+  <body class="bg-[#F5F0E8] text-[#493D35] antialiased">
     <slot name="banner" />
     <Template invitation={invitation} content={content} images={images} wishes={wishes} hasMoreWishes={hasMoreWishes} guestName={guestName} />
   </body>

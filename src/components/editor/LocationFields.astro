@@ -1,11 +1,18 @@
 ---
 import EField from './EField.astro';
 ---
-<button type="button" data-action="copy-location"
-  class="rounded border px-3 py-1.5 text-sm hover:bg-gray-50">Salin dari acara pertama</button>
+<div class="space-y-4">
+  <p class="rounded-[9px] border border-[#D8C8B5] bg-[#F5F0E8]/60 px-3 py-2 text-xs leading-relaxed text-[#6C5E54]">
+    Bagian Lokasi otomatis tampil di preview setelah Nama tempat diisi.
+  </p>
 
-<EField path="sections.location.venueName" label="Nama tempat" maxlength="120" />
-<EField path="sections.location.address" label="Alamat" rows="2" maxlength="300" />
-<EField path="sections.location.mapsUrl" label="Tautan Google Maps (opsional)" type="url" maxlength="500"
-  placeholder="https://maps.app.goo.gl/..."
-  hint="Hanya tautan http:// atau https://. Bila kosong, tombol peta memakai pencarian Google Maps dari nama tempat dan alamat." />
+  <button type="button" data-action="copy-location" class="btn-secondary w-full py-2 text-xs">
+    Salin dari Acara Pertama
+  </button>
+
+  <EField path="sections.location.venueName" label="Nama tempat" maxlength="120" />
+  <EField path="sections.location.address" label="Alamat" rows="2" maxlength="300" />
+  <EField path="sections.location.mapsUrl" label="Tautan Google Maps (opsional)" type="url" maxlength="500"
+    placeholder="https://maps.app.goo.gl/..."
+    hint="Hanya tautan http:// atau https://. Bila kosong, peta otomatis mencari dari nama tempat dan alamat." />
+</div>

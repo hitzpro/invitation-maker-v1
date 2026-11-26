@@ -32,7 +32,7 @@ if (Astro.request.method === 'POST') {
   if (action === 'reset-password') {
     const targetId = String(form.get('userId') ?? '');
     if (isUuid(targetId) && targetId !== admin.id) {
-      const tempPass = randomBytes(6).toString('base64url'); // 8 karakter acak
+      const tempPass = randomBytes(6).toString('base64url');
       await db.update(users).set({ passwordHash: await hashPassword(tempPass) }).where(eq(users.id, targetId));
       await db.delete(sessions).where(eq(sessions.userId, targetId));
       notice = `Password sementara user berhasil direset menjadi: ${tempPass} (salin sekarang, hanya tampil sekali).`;
@@ -75,7 +75,7 @@ const savedMap = {
   settings: 'Pengaturan aplikasi berhasil disimpan.',
   user: 'Status pengguna diperbarui.',
   invitation: 'Status undangan diperbarui.',
-  deleted: 'Undangan dan seluruh file gambar/lagu berhasil dihapus.',
+  deleted: 'Undangan dan seluruh berkas gambar/lagu berhasil dihapus.',
 };
 const savedKey = Astro.url.searchParams.get('saved') ?? '';
 if (Object.hasOwn(savedMap, savedKey)) notice = savedMap[savedKey];
@@ -116,132 +116,377 @@ const [
 const publishedCount = invitationList.filter((i) => i.status === 'published' && !i.isDisabled).length;
 const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' });
 ---
-<AppLayout title="Panel Admin">
-  <div class="flex flex-wrap items-center justify-between gap-3">
+<AppLayout title="Panel Admin" activeNav="admin">
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
     <div>
-      <h1 class="text-2xl font-bold">Panel Admin</h1>
-      <p class="text-sm text-gray-600">Masuk sebagai {admin.name} ({admin.email})</p>
+      <p class="text-xs uppercase tracking-[0.16em] text-[#6C5E54]">Administrasi Sistem</p>
+      <h1 class="font-display mt-1 text-3xl font-medium tracking-tight text-[#493D35]">Panel Admin</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">Masuk sebagai {admin.name} ({admin.email})</p>
     </div>
-    <a href="/dashboard" class="text-sm underline">← Ke Dashboard Saya</a>
+    <a href="/dashboard" class="btn-secondary">Kembali ke Dashboard</a>
   </div>
 
-  {notice && (
-    <p class="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{notice}</p>
-  )}
+  {notice && <p class="feedback-success mt-6">{notice}</p>}
 
-  <section class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Pengguna</p>
-      <p class="text-2xl font-bold">{userList.length}</p>
+  <!-- Administrative Summary Strip -->
+  <section class="mt-6 grid grid-cols-2 divide-y divide-[#D8C8B5] overflow-hidden rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Pengguna</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">{userList.length}</p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Undangan (Publik)</p>
-      <p class="text-2xl font-bold">{invitationList.length} <span class="text-sm font-normal text-gray-500">({publishedCount})</span></p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Undangan (Publik)</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">
+        {invitationList.length} <span class="font-sans text-sm font-normal text-[#6C5E54]">({publishedCount})</span>
+      </p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Total RSVP</p>
-      <p class="text-2xl font-bold">{rsvpCount}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total RSVP</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">{rsvpCount}</p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Total Ucapan</p>
-      <p class="text-2xl font-bold">{wishCount}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total Ucapan</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">{wishCount}</p>
     </div>
   </section>
 
-  <section class="mt-8 max-w-xl rounded-lg border bg-white p-6">
-    <h2 class="font-semibold">Pengaturan Aplikasi</h2>
-    <form method="POST" class="mt-3 flex flex-wrap items-end gap-3">
-      <input type="hidden" name="_action" value="settings" />
-      <div class="min-w-[220px] flex-1">
-        <label for="appName" class="block text-sm font-medium">Nama aplikasi</label>
-        <input id="appName" name="appName" value={appName} required minlength="2" maxlength="60"
-          class="mt-1 w-full rounded border px-3 py-2 text-sm" />
-      </div>
-      <button class="rounded bg-black px-4 py-2 text-sm text-white">Simpan</button>
-      <label class="flex w-full items-center gap-2 text-sm">
-        <input type="checkbox" name="allowRegistration" checked={allowRegistration} />
-        Izinkan pendaftaran pengguna baru (/register)
-      </label>
-    </form>
-    {settingsError && <p class="mt-2 text-sm text-red-600">{settingsError}</p>}
-  </section>
-
-  <section class="mt-8 rounded-lg border bg-white p-6">
-    <h2 class="font-semibold">Kelola Pengguna ({userList.length})</h2>
-    <ul class="mt-4 divide-y">
-      {userList.map((u) => (
-        <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-          <div>
-            <p class="font-medium">
-              {u.name}
-              <span class="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs uppercase">{u.role}</span>
-              {!u.isActive && <span class="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">Nonaktif</span>}
-            </p>
-            <p class="text-xs text-gray-500">{u.email} · daftar {fmt.format(u.createdAt)}</p>
+  <!-- Application Settings & 1-Click Update Sync -->
+  <div class="mt-8 grid gap-6 lg:grid-cols-2 lg:items-start">
+    <section class="surface-panel p-6">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Pengaturan Aplikasi</h2>
+      <form method="POST" class="mt-4 space-y-4">
+        <input type="hidden" name="_action" value="settings" />
+        <div class="flex flex-wrap items-end gap-3">
+          <div class="min-w-[200px] flex-1">
+            <label for="appName" class="block text-sm font-medium text-[#493D35]">Nama aplikasi</label>
+            <input id="appName" name="appName" value={appName} required minlength="2" maxlength="60"
+              class="input-field mt-1.5" />
           </div>
-          {u.id !== admin.id ? (
-            <div class="flex items-center gap-2">
-              <form method="POST">
-                <input type="hidden" name="_action" value="toggle-user" />
-                <input type="hidden" name="userId" value={u.id} />
-                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
-                  {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                </button>
-              </form>
-              <form method="POST" onsubmit="return confirm('Reset password pengguna ini dan keluarkan seluruh sesinya?')">
-                <input type="hidden" name="_action" value="reset-password" />
-                <input type="hidden" name="userId" value={u.id} />
-                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">Reset password</button>
-              </form>
-            </div>
-          ) : (
-            <span class="text-xs text-gray-400">Akun Anda</span>
-          )}
-        </li>
-      ))}
-    </ul>
+          <button class="btn-primary">Simpan Pengaturan</button>
+        </div>
+        <label class="flex items-center gap-2.5 text-sm text-[#493D35]">
+          <input type="checkbox" name="allowRegistration" checked={allowRegistration} class="accent-[#8B7561]" />
+          Izinkan pendaftaran pengguna baru (/register)
+        </label>
+      </form>
+      {settingsError && <p class="mt-2 text-sm text-[#A34E4E]">{settingsError}</p>}
+    </section>
+
+    <section class="surface-panel p-6" id="system-update-panel">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 class="font-display text-lg font-medium text-[#493D35]">Pembaruan &amp; Sinkronisasi</h2>
+          <p class="mt-1 text-xs text-[#6C5E54]">
+            Tarik fitur dan perbaikan terbaru dari repositori GitHub tanpa menimpa <code class="font-mono">.env</code>, unggahan media, atau database lokal.
+          </p>
+        </div>
+        <span id="update-version-badge" class="status-tag status-neutral">Memeriksa...</span>
+      </div>
+
+      <div id="update-status-box" class="mt-4 rounded-[10px] border border-[#D8C8B5] bg-[#F5F0E8]/60 p-4 text-xs text-[#493D35]">
+        <p id="update-status-text">Klik "Cek Pembaruan" untuk memeriksa versi terbaru dari GitHub.</p>
+        <ul id="update-commit-list" class="mt-3 hidden space-y-1.5 border-t border-[#D8C8B5] pt-3"></ul>
+      </div>
+
+      <p id="update-feedback" class="mt-3 hidden text-xs"></p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2.5">
+        <button type="button" id="btn-check-update" class="btn-secondary px-4 py-2 text-xs">
+          Cek Pembaruan
+        </button>
+        <button type="button" id="btn-sync-update" disabled class="btn-primary px-4 py-2 text-xs disabled:opacity-50">
+          Sinkronkan Update
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Users Table -->
+  <section class="surface-panel mt-8 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8C8B5] px-6 py-4">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Kelola Pengguna ({userList.length})</h2>
+      <label for="admin-user-search" class="sr-only">Cari pengguna</label>
+      <input id="admin-user-search" type="search" placeholder="Cari nama atau email..."
+        class="input-field w-56 py-1.5 text-xs" />
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-[#D8C8B5] bg-[#F5F0E8]/60 text-xs uppercase tracking-wider text-[#6C5E54]">
+          <tr>
+            <th class="px-6 py-3 font-medium">Pengguna</th>
+            <th class="px-4 py-3 font-medium">Peran</th>
+            <th class="px-4 py-3 font-medium">Status</th>
+            <th class="px-4 py-3 font-medium">Terdaftar</th>
+            <th class="px-6 py-3 text-right font-medium">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#D8C8B5]/80">
+          {userList.map((u) => (
+            <tr data-admin-user data-q={`${u.name} ${u.email}`.toLowerCase()} class="hover:bg-[#F5F0E8]/35">
+              <td class="px-6 py-3.5">
+                <p class="font-medium text-[#493D35]">{u.name}</p>
+                <p class="text-xs text-[#6C5E54]">{u.email}</p>
+              </td>
+              <td class="px-4 py-3.5">
+                <span class="status-tag status-neutral uppercase">{u.role}</span>
+              </td>
+              <td class="px-4 py-3.5">
+                {u.isActive ? (
+                  <span class="status-tag status-success">Aktif</span>
+                ) : (
+                  <span class="status-tag status-error">Nonaktif</span>
+                )}
+              </td>
+              <td class="px-4 py-3.5 text-xs tabular-nums text-[#6C5E54]">{fmt.format(u.createdAt)}</td>
+              <td class="px-6 py-3.5 text-right">
+                {u.id !== admin.id ? (
+                  <div class="inline-flex flex-wrap items-center justify-end gap-2">
+                    <form method="POST">
+                      <input type="hidden" name="_action" value="toggle-user" />
+                      <input type="hidden" name="userId" value={u.id} />
+                      <button class="btn-secondary px-3 py-1 text-xs">
+                        {u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      </button>
+                    </form>
+                    <form method="POST" onsubmit="return confirm('Reset password pengguna ini dan keluarkan seluruh sesinya?')">
+                      <input type="hidden" name="_action" value="reset-password" />
+                      <input type="hidden" name="userId" value={u.id} />
+                      <button class="btn-secondary px-3 py-1 text-xs">Reset Password</button>
+                    </form>
+                  </div>
+                ) : (
+                  <span class="text-xs text-[#6C5E54]">Akun Anda</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   </section>
 
-  <section class="mt-8 rounded-lg border bg-white p-6">
-    <h2 class="font-semibold">Kelola Undangan ({invitationList.length})</h2>
+  <!-- Invitations Table -->
+  <section class="surface-panel mt-8 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8C8B5] px-6 py-4">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Kelola Undangan ({invitationList.length})</h2>
+      {invitationList.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="admin-inv-search" class="sr-only">Cari undangan</label>
+          <input id="admin-inv-search" type="search" placeholder="Cari judul, slug, atau pemilik..."
+            class="input-field w-56 py-1.5 text-xs" />
+        </div>
+      )}
+    </div>
+
     {invitationList.length === 0 ? (
-      <p class="mt-3 text-sm text-gray-500">Belum ada undangan.</p>
+      <p class="px-6 py-8 text-sm text-[#6C5E54]">Belum ada undangan terdaftar.</p>
     ) : (
-      <ul class="mt-4 divide-y">
-        {invitationList.map((inv) => (
-          <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-            <div class="min-w-0">
-              <p class="truncate font-medium">
-                {inv.title}
-                <span class={'ml-2 rounded px-1.5 py-0.5 text-xs ' + (inv.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700')}>
-                  {inv.status}
-                </span>
-                {inv.isDisabled && <span class="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">Dinonaktifkan</span>}
-              </p>
-              <p class="text-xs text-gray-500">/{inv.slug} · {inv.ownerEmail} · {fmt.format(inv.updatedAt)}</p>
-            </div>
-            <div class="flex items-center gap-2">
-              {inv.status === 'published' && !inv.isDisabled && (
-                <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="text-xs underline">Lihat</a>
-              )}
-              <form method="POST">
-                <input type="hidden" name="_action" value="toggle-invitation" />
-                <input type="hidden" name="invitationId" value={inv.id} />
-                <button class="rounded border px-3 py-1 text-xs hover:bg-gray-50">
-                  {inv.isDisabled ? 'Aktifkan' : 'Nonaktifkan'}
-                </button>
-              </form>
-              <form method="POST" onsubmit="return confirm('Hapus undangan ini beserta seluruh file gambar dan lagunya?')">
-                <input type="hidden" name="_action" value="delete-invitation" />
-                <input type="hidden" name="invitationId" value={inv.id} />
-                <button class="rounded border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50">
-                  Hapus
-                </button>
-              </form>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-[#D8C8B5] bg-[#F5F0E8]/60 text-xs uppercase tracking-wider text-[#6C5E54]">
+            <tr>
+              <th class="px-6 py-3 font-medium">Undangan</th>
+              <th class="px-4 py-3 font-medium">Pemilik</th>
+              <th class="px-4 py-3 font-medium">Status</th>
+              <th class="px-4 py-3 font-medium">Diperbarui</th>
+              <th class="px-6 py-3 text-right font-medium">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#D8C8B5]/80">
+            {invitationList.map((inv) => (
+              <tr data-admin-inv data-q={`${inv.title} ${inv.slug} ${inv.ownerEmail}`.toLowerCase()} class="hover:bg-[#F5F0E8]/35">
+                <td class="px-6 py-3.5">
+                  <p class="font-medium text-[#493D35]">{inv.title}</p>
+                  <p class="text-xs text-[#6C5E54]">/{inv.slug}</p>
+                </td>
+                <td class="px-4 py-3.5 text-xs text-[#6C5E54]">{inv.ownerEmail}</td>
+                <td class="px-4 py-3.5">
+                  <div class="flex flex-wrap gap-1.5">
+                    <span class={'status-tag ' + (inv.status === 'published' ? 'status-success' : 'status-neutral')}>
+                      {inv.status === 'published' ? 'Published' : 'Draft'}
+                    </span>
+                    {inv.isDisabled && <span class="status-tag status-error">Dinonaktifkan</span>}
+                  </div>
+                </td>
+                <td class="px-4 py-3.5 text-xs tabular-nums text-[#6C5E54]">{fmt.format(inv.updatedAt)}</td>
+                <td class="px-6 py-3.5 text-right">
+                  <div class="inline-flex flex-wrap items-center justify-end gap-2">
+                    {inv.status === 'published' && !inv.isDisabled && (
+                      <a href={`/${inv.slug}`} target="_blank" rel="noopener"
+                        class="text-xs font-medium text-[#493D35] underline underline-offset-4">
+                        Lihat
+                      </a>
+                    )}
+                    <form method="POST">
+                      <input type="hidden" name="_action" value="toggle-invitation" />
+                      <input type="hidden" name="invitationId" value={inv.id} />
+                      <button class="btn-secondary px-3 py-1 text-xs">
+                        {inv.isDisabled ? 'Aktifkan' : 'Nonaktifkan'}
+                      </button>
+                    </form>
+                    <form method="POST" onsubmit="return confirm('Hapus undangan ini beserta seluruh berkas gambar dan lagunya?')">
+                      <input type="hidden" name="_action" value="delete-invitation" />
+                      <input type="hidden" name="invitationId" value={inv.id} />
+                      <button class="btn-danger px-3 py-1 text-xs">Hapus</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     )}
   </section>
 </AppLayout>
+
+<script>
+  const userSearch = document.getElementById('admin-user-search');
+  const userRows = [...document.querySelectorAll('[data-admin-user]')];
+  userSearch?.addEventListener('input', () => {
+    const q = userSearch.value.trim().toLowerCase();
+    for (const row of userRows) row.classList.toggle('hidden', Boolean(q) && !row.dataset.q.includes(q));
+  });
+
+  const invSearch = document.getElementById('admin-inv-search');
+  const invRows = [...document.querySelectorAll('[data-admin-inv]')];
+  invSearch?.addEventListener('input', () => {
+    const q = invSearch.value.trim().toLowerCase();
+    for (const row of invRows) row.classList.toggle('hidden', Boolean(q) && !row.dataset.q.includes(q));
+  });
+
+  // ---------- 1-Click Update Sync ----------
+  const badgeEl = document.getElementById('update-version-badge');
+  const statusTextEl = document.getElementById('update-status-text');
+  const commitListEl = document.getElementById('update-commit-list');
+  const feedbackEl = document.getElementById('update-feedback');
+  const checkBtn = document.getElementById('btn-check-update');
+  const syncBtn = document.getElementById('btn-sync-update');
+
+  function setFeedback(kind, msg) {
+    if (!feedbackEl) return;
+    if (!msg) {
+      feedbackEl.className = 'mt-3 hidden text-xs';
+      feedbackEl.textContent = '';
+      return;
+    }
+    feedbackEl.className =
+      kind === 'error'
+        ? 'feedback-error mt-3 text-xs'
+        : 'feedback-success mt-3 text-xs';
+    feedbackEl.textContent = msg;
+  }
+
+  function renderCommits(commits) {
+    if (!commitListEl) return;
+    commitListEl.replaceChildren();
+    if (!commits?.length) {
+      commitListEl.classList.add('hidden');
+      return;
+    }
+    for (const c of commits) {
+      const li = document.createElement('li');
+      li.className = 'flex items-baseline justify-between gap-2';
+      const left = document.createElement('span');
+      const code = document.createElement('code');
+      code.className = 'font-mono text-[11px] text-[#8B7561] mr-1.5';
+      code.textContent = c.hash || '';
+      const subject = document.createElement('span');
+      subject.textContent = c.subject || '';
+      left.append(code, subject);
+
+      const date = document.createElement('span');
+      date.className = 'shrink-0 text-[11px] tabular-nums text-[#6C5E54]';
+      date.textContent = c.date || '';
+
+      li.append(left, date);
+      commitListEl.append(li);
+    }
+    commitListEl.classList.remove('hidden');
+  }
+
+  async function checkUpdates() {
+    if (!checkBtn || !syncBtn || !statusTextEl || !badgeEl) return;
+    checkBtn.disabled = true;
+    checkBtn.textContent = 'Memeriksa...';
+    syncBtn.disabled = true;
+    setFeedback('', '');
+
+    try {
+      const res = await fetch('/api/admin/updates', { headers: { 'X-Requested-With': 'fetch' } });
+      const data = await res.json();
+
+      const ver = data.packageVersion ? `v${data.packageVersion}` : 'Lokal';
+      if (!data.gitAvailable) {
+        badgeEl.className = 'status-tag status-neutral';
+        badgeEl.textContent = ver;
+        statusTextEl.textContent = data.reason || 'Repositori Git tidak terdeteksi.';
+        renderCommits([]);
+        return;
+      }
+
+      if (!res.ok || !data.ok) {
+        badgeEl.className = 'status-tag status-error';
+        badgeEl.textContent = `${ver} · ${data.localCommit || 'git'}`;
+        statusTextEl.textContent = data.error || 'Gagal memeriksa pembaruan.';
+        renderCommits([]);
+        return;
+      }
+
+      if (data.hasUpdates) {
+        badgeEl.className = 'status-tag status-neutral';
+        badgeEl.textContent = `${data.behindCount} update tersedia`;
+        statusTextEl.textContent = `Versi lokal ${data.localCommit} (branch ${data.branch}) tertinggal ${data.behindCount} commit dari ${data.remoteCommit}.`;
+        renderCommits(data.commits);
+        syncBtn.disabled = Boolean(data.hasLocalChanges);
+        if (data.hasLocalChanges) {
+          setFeedback('error', 'Ada perubahan file kode lokal yang belum di-commit. Kembalikan/commit dulu sebelum sinkronisasi.');
+        }
+      } else {
+        badgeEl.className = 'status-tag status-success';
+        badgeEl.textContent = `Terbaru · ${data.localCommit || ver}`;
+        statusTextEl.textContent = `Aplikasi sudah mutakhir pada branch ${data.branch} (${data.localCommit}).`;
+        renderCommits([]);
+      }
+    } catch {
+      badgeEl.className = 'status-tag status-error';
+      badgeEl.textContent = 'Gagal cek';
+      statusTextEl.textContent = 'Tidak dapat terhubung ke endpoint pemeriksaan pembaruan.';
+    } finally {
+      checkBtn.disabled = false;
+      checkBtn.textContent = 'Cek Pembaruan';
+    }
+  }
+
+  checkBtn?.addEventListener('click', checkUpdates);
+
+  syncBtn?.addEventListener('click', async () => {
+    if (!syncBtn || !checkBtn) return;
+    syncBtn.disabled = true;
+    checkBtn.disabled = true;
+    syncBtn.textContent = 'Menyinkronkan...';
+    setFeedback('', '');
+
+    try {
+      const res = await fetch('/api/admin/updates', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setFeedback('error', data.error || 'Sinkronisasi gagal dijalankan.');
+        return;
+      }
+      setFeedback('ok', data.message || 'Sinkronisasi selesai. Lakukan Hard Refresh (Ctrl+Shift+R).');
+      await checkUpdates();
+    } catch {
+      setFeedback('error', 'Terjadi kesalahan jaringan saat menyinkronkan update.');
+    } finally {
+      syncBtn.textContent = 'Sinkronkan Update';
+      checkBtn.disabled = false;
+    }
+  });
+
+  checkUpdates();
+</script>

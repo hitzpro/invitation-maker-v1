@@ -13,7 +13,7 @@ const split = content.sections.countdown.style?.layout === 'split';
   <div data-countdown data-target={target} class={split ? 'w-3/5' : 'mt-8'}>
     <div class={'grid gap-3 ' + (split ? 'grid-cols-2' : 'grid-cols-4')}>
       {units.map(([unit, label]) => (
-        <div class="inv-chip rounded-lg py-4 text-center">
+        <div class="inv-chip rounded-[12px] border border-[#D8C8B5]/45 py-4 text-center">
           <div class="inv-title text-3xl tabular-nums" data-unit={unit}>--</div>
           <div class="inv-muted mt-1 text-xs uppercase tracking-wider">{label}</div>
         </div>

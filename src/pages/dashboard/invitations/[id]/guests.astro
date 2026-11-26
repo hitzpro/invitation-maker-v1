@@ -41,95 +41,139 @@ const totalGuestCount = hadirRows.reduce((sum, r) => sum + (r.guestCount || 0), 
 const deleted = Astro.url.searchParams.get('deleted');
 const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
 const badge = {
-  hadir: ['Hadir', 'bg-green-100 text-green-700'],
-  tidak_hadir: ['Tidak hadir', 'bg-red-100 text-red-700'],
-  ragu: ['Ragu', 'bg-amber-100 text-amber-700'],
+  hadir: ['Hadir', 'status-success'],
+  tidak_hadir: ['Tidak hadir', 'status-error'],
+  ragu: ['Ragu', 'status-warning'],
 };
 ---
-<AppLayout title={`Tamu & Ucapan · ${inv.title}`}>
-  <a href={`/dashboard/invitations/${inv.id}`} class="text-sm underline">← Kembali ke ringkasan</a>
-  <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+<AppLayout
+  title={`RSVP & Ucapan · ${inv.title}`}
+  invitationNav={{ id: inv.id, title: inv.title, method: inv.method, active: 'guests' }}
+>
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
     <div>
-      <h1 class="text-2xl font-bold">RSVP &amp; Ucapan Tamu</h1>
-      <p class="text-sm text-gray-600">{inv.title}</p>
+      <a href={`/dashboard/invitations/${inv.id}`} class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+        Kembali ke Ringkasan
+      </a>
+      <h1 class="font-display mt-2 text-3xl font-medium tracking-tight text-[#493D35]">RSVP &amp; Ucapan Tamu</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">{inv.title}</p>
     </div>
-    <a href={`/api/invitations/${inv.id}/guests.csv`}
-      class="rounded bg-black px-4 py-2 text-sm text-white hover:bg-gray-800">
-      Ekspor CSV
-    </a>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href={`/dashboard/invitations/${inv.id}/share`} class="btn-secondary">Daftar Tamu &amp; WA</a>
+      <a href={`/api/invitations/${inv.id}/guests.csv`} class="btn-primary">Ekspor CSV</a>
+    </div>
   </div>
 
   {deleted && (
-    <p class="mt-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+    <p class="feedback-success mt-6">
       Entri {deleted === 'rsvp' ? 'RSVP' : 'ucapan'} berhasil dihapus.
     </p>
   )}
 
-  <section class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Hadir</p>
-      <p class="text-2xl font-bold">{hadirRows.length}</p>
+  <!-- Summary Strip -->
+  <section class="mt-6 grid grid-cols-2 divide-y divide-[#D8C8B5] overflow-hidden rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Konfirmasi Hadir</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#58765D]">{hadirRows.length}</p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Tidak hadir / Ragu</p>
-      <p class="text-2xl font-bold">{tidakHadirCount} <span class="text-sm font-normal text-gray-500">/ {raguCount}</span></p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Tidak Hadir / Ragu</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">
+        {tidakHadirCount} <span class="font-sans text-sm font-normal text-[#6C5E54]">/ {raguCount}</span>
+      </p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Total tamu hadir</p>
-      <p class="text-2xl font-bold">{totalGuestCount}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total Tamu Hadir</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35]">{totalGuestCount}</p>
     </div>
-    <div class="rounded-lg border bg-white p-4">
-      <p class="text-xs text-gray-600">Total ucapan</p>
-      <p class="text-2xl font-bold">{wishRows.length}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total Ucapan</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#8B7561]">{wishRows.length}</p>
     </div>
   </section>
 
-  <section class="mt-8 rounded-lg border bg-white p-6">
-    <h2 class="font-semibold">Daftar Konfirmasi Kehadiran ({rsvpRows.length})</h2>
+  <!-- Minimalist RSVP Table -->
+  <section class="surface-panel mt-8 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#D8C8B5] px-6 py-4">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Daftar Konfirmasi Kehadiran ({rsvpRows.length})</h2>
+      {rsvpRows.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="rsvp-search" class="sr-only">Cari nama tamu</label>
+          <input id="rsvp-search" type="search" placeholder="Cari nama..." class="input-field w-44 py-1.5 text-xs" />
+          <select id="rsvp-filter" aria-label="Filter status kehadiran" class="input-field w-36 py-1.5 text-xs">
+            <option value="all">Semua Status</option>
+            <option value="hadir">Hadir</option>
+            <option value="tidak_hadir">Tidak hadir</option>
+            <option value="ragu">Ragu</option>
+          </select>
+        </div>
+      )}
+    </div>
+
     {rsvpRows.length === 0 ? (
-      <p class="mt-3 text-sm text-gray-500">Belum ada tamu yang mengisi RSVP.</p>
+      <p class="px-6 py-8 text-sm text-[#6C5E54]">Belum ada tamu yang mengisi konfirmasi kehadiran.</p>
     ) : (
-      <ul class="mt-4 divide-y">
-        {rsvpRows.map((r) => {
-          const [label, cls] = badge[r.attendance] ?? [r.attendance, 'bg-gray-100 text-gray-700'];
-          return (
-            <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-              <div>
-                <p class="font-medium">{r.guestName}</p>
-                <p class="text-xs text-gray-500">{fmt.format(r.createdAt)}</p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class={`rounded px-2 py-0.5 text-xs ${cls}`}>{label}</span>
-                {r.attendance === 'hadir' && <span class="text-xs text-gray-600">{r.guestCount} orang</span>}
-                <form method="POST" onsubmit="return confirm('Hapus data RSVP ini?')">
-                  <input type="hidden" name="_action" value="delete-rsvp" />
-                  <input type="hidden" name="entryId" value={r.id} />
-                  <button class="text-xs text-red-600 underline">Hapus</button>
-                </form>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-[#D8C8B5] bg-[#F5F0E8]/60 text-xs uppercase tracking-wider text-[#6C5E54]">
+            <tr>
+              <th class="px-6 py-3 font-medium">Nama Tamu</th>
+              <th class="px-4 py-3 font-medium">Status</th>
+              <th class="px-4 py-3 font-medium">Jumlah</th>
+              <th class="px-4 py-3 font-medium">Waktu</th>
+              <th class="px-6 py-3 text-right font-medium">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="rsvp-tbody" class="divide-y divide-[#D8C8B5]/80">
+            {rsvpRows.map((r) => {
+              const [label, cls] = badge[r.attendance] ?? [r.attendance, 'status-neutral'];
+              return (
+                <tr data-rsvp-row data-name={r.guestName.toLowerCase()} data-att={r.attendance} class="hover:bg-[#F5F0E8]/35">
+                  <td class="px-6 py-3.5 font-medium text-[#493D35]">{r.guestName}</td>
+                  <td class="px-4 py-3.5"><span class={`status-tag ${cls}`}>{label}</span></td>
+                  <td class="px-4 py-3.5 tabular-nums text-[#6C5E54]">
+                    {r.attendance === 'hadir' ? `${r.guestCount} orang` : '—'}
+                  </td>
+                  <td class="px-4 py-3.5 text-xs tabular-nums text-[#6C5E54]">{fmt.format(r.createdAt)}</td>
+                  <td class="px-6 py-3.5 text-right">
+                    <form method="POST" onsubmit="return confirm('Hapus data RSVP ini?')" class="inline">
+                      <input type="hidden" name="_action" value="delete-rsvp" />
+                      <input type="hidden" name="entryId" value={r.id} />
+                      <button class="text-xs font-medium text-[#A34E4E] underline underline-offset-4">Hapus</button>
+                    </form>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p id="rsvp-empty-filter" class="hidden px-6 py-6 text-center text-sm text-[#6C5E54]">
+          Tidak ada data RSVP yang cocok.
+        </p>
+      </div>
     )}
   </section>
 
-  <section class="mt-6 rounded-lg border bg-white p-6">
-    <h2 class="font-semibold">Ucapan &amp; Doa Tamu ({wishRows.length})</h2>
+  <!-- Wishes List -->
+  <section class="surface-panel mt-8 p-6">
+    <h2 class="font-display text-lg font-medium text-[#493D35]">Ucapan &amp; Doa Tamu ({wishRows.length})</h2>
     {wishRows.length === 0 ? (
-      <p class="mt-3 text-sm text-gray-500">Belum ada ucapan dari tamu.</p>
+      <p class="mt-3 text-sm text-[#6C5E54]">Belum ada ucapan dari tamu.</p>
     ) : (
-      <ul class="mt-4 divide-y">
+      <ul class="mt-4 divide-y divide-[#D8C8B5]/80">
         {wishRows.map((w) => (
-          <li class="flex items-start justify-between gap-4 py-3 text-sm">
+          <li class="flex items-start justify-between gap-4 py-4 text-sm">
             <div class="min-w-0">
-              <p class="font-medium">{w.guestName} <span class="ml-2 text-xs font-normal text-gray-500">{fmt.format(w.createdAt)}</span></p>
-              <p class="mt-1 whitespace-pre-line text-gray-700">{w.message}</p>
+              <div class="flex flex-wrap items-baseline gap-2.5">
+                <p class="font-medium text-[#493D35]">{w.guestName}</p>
+                <span class="text-xs tabular-nums text-[#6C5E54]">{fmt.format(w.createdAt)}</span>
+              </div>
+              <p class="mt-1.5 whitespace-pre-line leading-relaxed text-[#493D35]/90">{w.message}</p>
             </div>
             <form method="POST" onsubmit="return confirm('Hapus ucapan ini?')" class="shrink-0">
               <input type="hidden" name="_action" value="delete-wish" />
               <input type="hidden" name="entryId" value={w.id} />
-              <button class="text-xs text-red-600 underline">Hapus</button>
+              <button class="text-xs font-medium text-[#A34E4E] underline underline-offset-4">Hapus</button>
             </form>
           </li>
         ))}
@@ -137,3 +181,27 @@ const badge = {
     )}
   </section>
 </AppLayout>
+
+<script>
+  const searchEl = document.getElementById('rsvp-search');
+  const filterEl = document.getElementById('rsvp-filter');
+  const rows = [...document.querySelectorAll('[data-rsvp-row]')];
+  const emptyEl = document.getElementById('rsvp-empty-filter');
+
+  function applyRsvpFilter() {
+    if (!rows.length) return;
+    const q = (searchEl?.value ?? '').trim().toLowerCase();
+    const att = filterEl?.value ?? 'all';
+    let shown = 0;
+
+    for (const row of rows) {
+      const ok = (!q || row.dataset.name.includes(q)) && (att === 'all' || row.dataset.att === att);
+      row.classList.toggle('hidden', !ok);
+      if (ok) shown += 1;
+    }
+    emptyEl?.classList.toggle('hidden', shown > 0);
+  }
+
+  searchEl?.addEventListener('input', applyRsvpFilter);
+  filterEl?.addEventListener('change', applyRsvpFilter);
+</script>

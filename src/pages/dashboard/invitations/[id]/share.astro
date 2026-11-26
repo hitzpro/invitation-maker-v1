@@ -12,7 +12,6 @@ const { id } = Astro.params;
 const inv = await getOwnedInvitation(id, user.id);
 if (!inv) return Astro.rewrite('/404');
 
-// Rapikan nomor HP Indonesia ke format 628...
 function normalizePhone(raw) {
   const digits = String(raw ?? '').replace(/\D/g, '');
   if (!digits) return '';
@@ -71,76 +70,100 @@ const appUrl = (env('APP_URL') ?? Astro.url.origin).replace(/\/$/, '');
 const defaultTpl =
   `Kepada Yth. {nama},\n\nTanpa mengurangi rasa hormat, kami mengundang Anda untuk menghadiri acara kami.\n\nInfo lengkap & konfirmasi kehadiran:\n{link}\n\nTerima kasih.`;
 const sentCount = guests.filter((g) => g.sentAt).length;
+const saved = Astro.url.searchParams.get('saved');
 const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
 ---
-<AppLayout title={`Sebar Undangan · ${inv.title}`}>
-  <a href={`/dashboard/invitations/${inv.id}`} class="text-sm underline">← Kembali ke ringkasan</a>
-  <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+<AppLayout
+  title={`Tamu & Sebar · ${inv.title}`}
+  invitationNav={{ id: inv.id, title: inv.title, method: inv.method, active: 'share' }}
+>
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
     <div>
-      <h1 class="text-2xl font-bold">Daftar Tamu &amp; WhatsApp</h1>
-      <p class="text-sm text-gray-600">{guests.length} tamu · {sentCount} sudah dikirim</p>
+      <a href={`/dashboard/invitations/${inv.id}`} class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+        Kembali ke Ringkasan
+      </a>
+      <h1 class="font-display mt-2 text-3xl font-medium tracking-tight text-[#493D35]">Daftar Tamu &amp; WhatsApp</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">
+        <span class="tabular-nums font-medium text-[#493D35]">{guests.length}</span> tamu terdaftar ·
+        <span class="tabular-nums font-medium text-[#58765D]">{sentCount}</span> sudah dikirim
+      </p>
     </div>
+    <p class="text-xs text-[#6C5E54]">
+      Tautan personal otomatis mengisi nama tamu melalui parameter <code class="rounded bg-[#FFFFFF] px-1.5 py-0.5 border border-[#D8C8B5]">?to=Nama</code>.
+    </p>
   </div>
 
+  {saved === 'added' && <p class="feedback-success mt-6">Daftar tamu berhasil ditambahkan.</p>}
+  {saved === 'deleted' && <p class="feedback-success mt-6">Tamu berhasil dihapus dari daftar.</p>}
+
   <section class="mt-6 grid gap-6 lg:grid-cols-2">
-    <form method="POST" class="rounded-lg border bg-white p-5 space-y-3">
+    <form method="POST" class="surface-panel space-y-3 p-6">
       <input type="hidden" name="_action" value="add-bulk" />
-      <h2 class="font-semibold">Tambah Tamu</h2>
-      <p class="text-xs text-gray-600">Satu tamu per baris. Bisa tambah nomor WA dipisah koma, contoh: <code>Budi Santoso, 08123456789</code></p>
-      <textarea name="bulk" rows="4" required placeholder="Andi Wijaya, 081234567890&#10;Siti Aminah"
-        class="w-full rounded border px-3 py-2 text-sm"></textarea>
-      <button class="rounded bg-black px-4 py-2 text-sm text-white">Tambahkan</button>
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Tambah Tamu</h2>
+      <p class="text-xs text-[#6C5E54]">
+        Satu tamu per baris. Dapat menyertakan nomor WhatsApp dipisah koma, misalnya:
+        <code class="rounded bg-[#F5F0E8] px-1.5 py-0.5 text-[#493D35]">Budi Santoso, 08123456789</code>
+      </p>
+      <textarea name="bulk" rows="5" required placeholder="Andi Wijaya, 081234567890&#10;Siti Aminah"
+        class="input-field"></textarea>
+      <button class="btn-primary">Tambahkan Tamu</button>
     </form>
 
-    <div class="rounded-lg border bg-white p-5 space-y-2">
-      <label for="wa-tpl" class="block font-semibold">Template Pesan WhatsApp</label>
-      <p class="text-xs text-gray-600">Gunakan <code>{'{nama}'}</code> dan <code>{'{link}'}</code> sebagai penanda otomatis.</p>
-      <textarea id="wa-tpl" rows="5" class="w-full rounded border px-3 py-2 text-sm">{defaultTpl}</textarea>
+    <div class="surface-panel space-y-3 p-6">
+      <label for="wa-tpl" class="font-display block text-lg font-medium text-[#493D35]">Template Pesan WhatsApp</label>
+      <p class="text-xs text-[#6C5E54]">
+        Gunakan <code class="rounded bg-[#F5F0E8] px-1.5 py-0.5 text-[#493D35]">{'{nama}'}</code> dan
+        <code class="rounded bg-[#F5F0E8] px-1.5 py-0.5 text-[#493D35]">{'{link}'}</code> sebagai penanda otomatis.
+      </p>
+      <textarea id="wa-tpl" rows="5" class="input-field">{defaultTpl}</textarea>
     </div>
   </section>
 
-  <section class="mt-6 rounded-lg border bg-white p-5">
-    <h2 class="font-semibold">Tautan Personal ({guests.length})</h2>
+  <section class="surface-panel mt-8 overflow-hidden">
+    <div class="border-b border-[#D8C8B5] px-6 py-4">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Tautan Personal ({guests.length})</h2>
+    </div>
+
     {guests.length === 0 ? (
-      <p class="mt-3 text-sm text-gray-500">Belum ada daftar tamu.</p>
+      <p class="px-6 py-8 text-sm text-[#6C5E54]">Belum ada daftar tamu. Tambahkan tamu di formulir di atas.</p>
     ) : (
-      <ul class="mt-4 divide-y">
+      <ul class="divide-y divide-[#D8C8B5]/80">
         {guests.map((g) => {
           const personalUrl = `${appUrl}/${inv.slug}?to=${encodeURIComponent(g.name)}`;
           return (
-            <li class="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-              <div class="min-w-0">
-                <p class="font-medium">
-                  {g.name}
-                  {g.phone && <span class="ml-2 text-xs text-gray-500">+{g.phone}</span>}
+            <li class="flex flex-wrap items-center justify-between gap-4 px-6 py-4 text-sm hover:bg-[#F5F0E8]/35">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-medium text-[#493D35]">{g.name}</p>
+                  {g.phone && <span class="text-xs tabular-nums text-[#6C5E54]">+{g.phone}</span>}
                   {g.sentAt ? (
-                    <span class="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700">Terkirim · {fmt.format(g.sentAt)}</span>
+                    <span class="status-tag status-success">Terkirim · {fmt.format(g.sentAt)}</span>
                   ) : (
-                    <span class="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">Belum dikirim</span>
+                    <span class="status-tag status-neutral">Belum dikirim</span>
                   )}
-                </p>
-                <p class="truncate text-xs text-gray-500">{personalUrl}</p>
+                </div>
+                <p class="mt-1 truncate text-xs text-[#6C5E54]">{personalUrl}</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <button type="button" data-copy-link={personalUrl} class="rounded border px-2.5 py-1 text-xs hover:bg-gray-50">
-                  Salin link
+                <button type="button" data-copy-link={personalUrl} class="btn-secondary px-3 py-1.5 text-xs">
+                  Salin Link
                 </button>
                 <button type="button" data-wa-send data-guest-id={g.id} data-name={g.name} data-phone={g.phone}
                   data-url={personalUrl}
-                  class="rounded bg-green-600 px-2.5 py-1 text-xs text-white hover:bg-green-700">
+                  class="inline-flex items-center justify-center rounded-[8px] border border-[#58765D] bg-[#58765D] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90">
                   Kirim WA
                 </button>
                 <form method="POST" data-toggle-form={g.id}>
                   <input type="hidden" name="_action" value="toggle-sent" />
                   <input type="hidden" name="guestId" value={g.id} />
-                  <button class="rounded border px-2.5 py-1 text-xs hover:bg-gray-50">
-                    {g.sentAt ? 'Tandai belum' : 'Tandai terkirim'}
+                  <button class="btn-secondary px-3 py-1.5 text-xs">
+                    {g.sentAt ? 'Tandai Belum' : 'Tandai Terkirim'}
                   </button>
                 </form>
                 <form method="POST" onsubmit="return confirm('Hapus tamu ini?')">
                   <input type="hidden" name="_action" value="delete" />
                   <input type="hidden" name="guestId" value={g.id} />
-                  <button class="text-xs text-red-600 underline">Hapus</button>
+                  <button class="px-2 py-1 text-xs font-medium text-[#A34E4E] underline underline-offset-4">Hapus</button>
                 </form>
               </div>
             </li>
@@ -156,9 +179,14 @@ const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 's
 
   document.querySelectorAll('[data-copy-link]').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(btn.dataset.copyLink);
-      btn.textContent = 'Tersalin';
-      setTimeout(() => (btn.textContent = 'Salin link'), 1500);
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copyLink);
+        btn.textContent = 'Tersalin';
+        setTimeout(() => (btn.textContent = 'Salin Link'), 1500);
+      } catch {
+        btn.textContent = 'Gagal menyalin';
+        setTimeout(() => (btn.textContent = 'Salin Link'), 1500);
+      }
     });
   });
 
@@ -171,11 +199,17 @@ const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'short', timeStyle: 's
       const waUrl = phone
         ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
         : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      window.open(waUrl, '_blank', 'noopener');
 
-      // Otomatis tandai sudah dikirim
+      const link = document.createElement('a');
+      link.href = waUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.append(link);
+      link.click();
+      link.remove();
+
       const form = document.querySelector(`[data-toggle-form="${btn.dataset.guestId}"]`);
-      if (form && form.querySelector('button').textContent.includes('Tandai terkirim')) {
+      if (form && form.querySelector('button').textContent.includes('Tandai Terkirim')) {
         form.requestSubmit();
       }
     });

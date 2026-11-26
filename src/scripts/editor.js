@@ -14,14 +14,16 @@ const { invitationId, content, version, assets, audio, svgs = [] } = JSON.parse(
 const statusEl = document.getElementById('save-status');
 const conflictEl = document.getElementById('conflict-banner');
 const summaryEl = document.getElementById('error-summary');
+const undoBtn = document.getElementById('undo-btn');
+const redoBtn = document.getElementById('redo-btn');
 
 const STATUS = {
-  dirty: ['Perubahan belum disimpan…', 'text-gray-600'],
-  saving: ['Menyimpan…', 'text-gray-600'],
-  saved: ['Tersimpan', 'text-green-700'],
-  error: ['Gagal menyimpan, mencoba lagi…', 'text-red-600'],
-  invalid: ['Ada isian yang belum valid', 'text-red-600'],
-  conflict: ['Konflik versi', 'text-red-600'],
+  dirty: ['Perubahan belum disimpan…', 'font-medium text-[#6C5E54]'],
+  saving: ['Menyimpan…', 'font-medium text-[#6C5E54]'],
+  saved: ['Tersimpan', 'font-medium text-[#58765D]'],
+  error: ['Gagal menyimpan, mencoba lagi…', 'font-medium text-[#A34E4E]'],
+  invalid: ['Ada isian belum valid', 'font-medium text-[#A34E4E]'],
+  conflict: ['Konflik versi', 'font-medium text-[#A34E4E]'],
 };
 
 function showErrors(errors) {
@@ -54,13 +56,16 @@ const store = createStore({
     statusEl.textContent = label;
     statusEl.className = color;
   },
-  onSaved: () => preview.refresh(),
+  onSaved: () => {
+    preview.refresh();
+    sectionsCtrl?.refreshBadges();
+  },
   onErrors: showErrors,
   onConflict: () => conflictEl.classList.remove('hidden'),
   onRestore: () => syncAll(),
 });
 
-// ---------- Pengikatan dua arah: <input data-bind="sections.cover.heading"> ----------
+// ---------- Two-way bindings ----------
 function syncBindings(root = document) {
   root.querySelectorAll('[data-bind]').forEach((el) => {
     const path = el.dataset.bind;
@@ -74,6 +79,7 @@ function syncBindings(root = document) {
       const raw = el.type === 'checkbox' ? el.checked : el.value;
       store.set(path, el.dataset.type === 'number' ? Number(raw) : raw);
       updateHistoryButtons();
+      sectionsCtrl?.refreshBadges();
     });
   });
 }
@@ -82,11 +88,10 @@ const bindAll = syncBindings;
 bindAll(document);
 initFonts({ store });
 initTheme({ store });
-
 initPhotos({ store, invitationId, assets });
 initMusic({ store, invitationId, tracks: audio });
 
-// Swatch warna siap pakai
+// Preset swatch colors
 const colorInput = document.querySelector('[data-bind="theme.primaryColor"]');
 document.querySelectorAll('[data-color-preset]').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -97,20 +102,82 @@ document.querySelectorAll('[data-color-preset]').forEach((btn) => {
   });
 });
 
-// Preview mengikuti section yang sedang diedit (sekali per perpindahan section)
+// ---------- 3-Panel Active Property & Mobile Tab Management ----------
+const paneStructure = document.getElementById('pane-structure');
+const paneProperties = document.getElementById('pane-properties');
+const panePreview = document.getElementById('pane-preview');
+const mobileTabs = [...document.querySelectorAll('[data-tab]')];
+const propPanels = [...document.querySelectorAll('[data-prop-panel]')];
+const globalPicks = [...document.querySelectorAll('[data-panel-pick]')];
+const sectionCards = [...document.querySelectorAll('#sections > [data-section]')];
+
+function setMobileTab(tab) {
+  paneStructure?.classList.toggle('hidden', tab !== 'structure');
+  paneProperties?.classList.toggle('hidden', tab !== 'properties');
+  panePreview?.classList.toggle('hidden', tab !== 'preview');
+  mobileTabs.forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle('border-[#8B7561]', on);
+    b.classList.toggle('border-transparent', !on);
+    b.classList.toggle('font-medium', on);
+    b.classList.toggle('text-[#493D35]', on);
+    b.classList.toggle('text-[#6C5E54]', !on);
+  });
+}
+
+mobileTabs.forEach((btn) => {
+  btn.addEventListener('click', () => setMobileTab(btn.dataset.tab));
+});
+
 let lastFocusedSection = null;
-initSections({
+function activatePanel(panelKey, { switchMobile = false } = {}) {
+  propPanels.forEach((p) => {
+    p.classList.toggle('hidden', p.dataset.propPanel !== panelKey);
+  });
+
+  globalPicks.forEach((btn) => {
+    const on = btn.dataset.panelPick === panelKey;
+    btn.classList.toggle('border-[#8B7561]', on);
+    btn.classList.toggle('bg-[#F5F0E8]', on);
+    btn.classList.toggle('border-[#D8C8B5]', !on);
+    btn.classList.toggle('bg-[#FFFFFF]', !on);
+  });
+
+  sectionCards.forEach((card) => {
+    const on = card.dataset.section === panelKey;
+    card.classList.toggle('border-[#8B7561]', on);
+    card.classList.toggle('bg-[#F5F0E8]/60', on);
+    card.classList.toggle('border-[#D8C8B5]', !on);
+    card.classList.toggle('bg-[#FFFFFF]', !on);
+  });
+
+  if (!panelKey.startsWith('global-') && panelKey !== lastFocusedSection) {
+    lastFocusedSection = panelKey;
+    preview.scrollToSection(panelKey);
+  }
+
+  if (switchMobile && window.innerWidth < 1024) {
+    setMobileTab('properties');
+  }
+  paneProperties?.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+globalPicks.forEach((btn) => {
+  btn.addEventListener('click', () => activatePanel(btn.dataset.panelPick, { switchMobile: true }));
+});
+
+const sectionsCtrl = initSections({
   store,
-  onFocusSection(key) {
-    if (key === lastFocusedSection) return;
-    lastFocusedSection = key;
-    preview.scrollToSection(key);
+  onSelectSection(key) {
+    activatePanel(key, { switchMobile: true });
   },
 });
 
-// ---------- Daftar dinamis (acara, cerita) ----------
+activatePanel('global-theme');
+
+// ---------- Dynamic Lists (events, stories, gifts, decorations) ----------
 function initList(container) {
-  const path = container.dataset.list; // contoh: sections.event.items
+  const path = container.dataset.list;
   const max = Number(container.dataset.max);
   const blank = JSON.parse(container.dataset.blank);
   const template = container.querySelector('template');
@@ -125,7 +192,6 @@ function initList(container) {
     items.forEach((_, i) => {
       const fragment = template.content.cloneNode(true);
 
-      // ganti penanda __i__ dengan nomor urut pada semua atribut (data-bind, id, for, dst.)
       fragment.querySelectorAll('*').forEach((el) => {
         for (const attr of [...el.attributes]) {
           if (attr.value.includes('__i__')) el.setAttribute(attr.name, attr.value.replaceAll('__i__', i));
@@ -139,9 +205,10 @@ function initList(container) {
 
       fragment.querySelector('[data-remove-item]').addEventListener('click', () => {
         store.removeAt(path, i);
-        showErrors({}); // pesan error lama merujuk indeks yang sudah bergeser
+        showErrors({});
         render();
         updateHistoryButtons();
+        sectionsCtrl?.refreshBadges();
       });
 
       itemsEl.append(fragment);
@@ -155,6 +222,7 @@ function initList(container) {
     store.push(path, structuredClone(blank));
     render();
     updateHistoryButtons();
+    sectionsCtrl?.refreshBadges();
   });
 
   render();
@@ -163,7 +231,7 @@ function initList(container) {
 document.querySelectorAll('[data-list]').forEach(initList);
 initOrnaments({ store, invitationId, svgs });
 
-// ---------- Salin lokasi dari acara pertama ----------
+// ---------- Copy location from first event ----------
 document.querySelector('[data-action="copy-location"]')?.addEventListener('click', (e) => {
   const btn = e.currentTarget;
   const first = store.get('sections.event.items')[0];
@@ -185,11 +253,12 @@ document.querySelector('[data-action="copy-location"]')?.addEventListener('click
     if (input) input.value = value;
   }
   updateHistoryButtons();
+  sectionsCtrl?.refreshBadges();
 });
 
 document.getElementById('reload-btn')?.addEventListener('click', () => location.reload());
 
-// ---------- Jangan kehilangan perubahan saat menutup tab ----------
+// ---------- Unsaved changes protection ----------
 window.addEventListener('beforeunload', (e) => {
   if (store.isDirty()) {
     e.preventDefault();
@@ -199,27 +268,12 @@ window.addEventListener('beforeunload', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') store.flush();
 });
-
-// ---------- Tab Edit / Preview untuk layar kecil ----------
-const paneEdit = document.getElementById('pane-edit');
-const panePreview = document.getElementById('pane-preview');
-document.querySelectorAll('[data-tab]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const tab = btn.dataset.tab;
-    paneEdit.classList.toggle('hidden', tab !== 'edit');
-    panePreview.classList.toggle('hidden', tab !== 'preview');
-    document.querySelectorAll('[data-tab]').forEach((b) => {
-      b.classList.toggle('border-b-2', b === btn);
-      b.classList.toggle('border-black', b === btn);
-      b.classList.toggle('font-medium', b === btn);
-    });
-  });
+document.querySelectorAll('header a').forEach((link) => {
+  link.addEventListener('pointerdown', () => store.flush());
+  link.addEventListener('click', () => store.flush());
 });
 
 // ---------- Undo / Redo ----------
-const undoBtn = document.getElementById('undo-btn');
-const redoBtn = document.getElementById('redo-btn');
-
 function updateHistoryButtons() {
   if (undoBtn) undoBtn.disabled = !store.canUndo();
   if (redoBtn) redoBtn.disabled = !store.canRedo();
@@ -229,6 +283,7 @@ function syncAll() {
   document.querySelectorAll('[data-list]').forEach((c) => c._rerender?.());
   syncBindings(document);
   updateHistoryButtons();
+  sectionsCtrl?.refreshBadges();
 }
 
 undoBtn?.addEventListener('click', () => store.undo());

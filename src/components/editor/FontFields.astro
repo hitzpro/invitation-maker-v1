@@ -10,29 +10,32 @@ const ROLES = {
   story: [['title', 'Judul section'], ['heading', 'Judul cerita'], ['body', 'Waktu & isi cerita']],
   gallery: [['title', 'Judul section']],
   location: [['title', 'Judul section'], ['heading', 'Nama tempat'], ['body', 'Alamat']],
+  gift: [['title', 'Judul section'], ['body', 'Teks pengantar']],
   rsvp: [['title', 'Judul section'], ['body', 'Teks isi']],
   wishes: [['title', 'Judul section'], ['body', 'Teks isi']],
   closing: [['heading', 'Nama mempelai'], ['body', 'Pesan penutup']],
 };
 const roles = ROLES[sectionKey] ?? [];
-const FAMILIES = [['default', 'Default (serif)'], ['sans', 'Sans serif'], ['script', 'Tipografi']];
+const FAMILIES = [['default', 'Default (Playfair Serif)'], ['sans', 'Sans Serif (DM Sans)'], ['script', 'Tipografi (Script)']];
 ---
-<div class="space-y-2 rounded border bg-gray-50 p-3">
-  <p class="text-sm font-medium">Font</p>
+<div class="space-y-3 border-t border-[#D8C8B5] pt-5">
+  <p class="text-xs font-medium uppercase tracking-wider text-[#6C5E54]">Tipografi Section</p>
   {roles.map(([role, label]) => (
     <div class="flex items-center gap-2" data-font-row>
-      <span class="w-28 shrink-0 text-xs text-gray-600">{label}</span>
+      <span class="w-28 shrink-0 text-xs text-[#6C5E54]">{label}</span>
       <select data-bind={`${base}.${role}.family`} data-font-family aria-label={`Font ${label}`}
-        class="min-w-0 flex-1 rounded border bg-white px-2 py-1.5 text-sm">
+        class="input-field min-w-0 flex-1 py-1.5 text-xs">
         {FAMILIES.map(([value, text]) => <option value={value}>{text}</option>)}
       </select>
       <button type="button" data-font-toggle="bold" data-path={`${base}.${role}.bold`}
         aria-label={`Tebal: ${label}`} aria-pressed="false"
-        class="h-8 w-8 shrink-0 rounded border bg-white text-sm font-bold">B</button>
+        class="h-8 w-8 shrink-0 rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] text-xs font-bold text-[#493D35]">B</button>
       <button type="button" data-font-toggle="italic" data-path={`${base}.${role}.italic`}
         aria-label={`Miring: ${label}`} aria-pressed="false"
-        class="h-8 w-8 shrink-0 rounded border bg-white text-sm italic">I</button>
+        class="h-8 w-8 shrink-0 rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] text-xs italic text-[#493D35]">I</button>
     </div>
   ))}
-  <p class="text-xs text-gray-500">Font "Tipografi" bersifat dekoratif dan tidak punya varian tebal atau miring.</p>
+  <p class="text-xs leading-relaxed text-[#6C5E54]">
+    Font &ldquo;Tipografi (Script)&rdquo; bersifat dekoratif dan tidak memiliki varian tebal atau miring.
+  </p>
 </div>

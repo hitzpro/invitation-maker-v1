@@ -53,7 +53,7 @@ export function defaultContent() {
   const content = {
     version: 1,
     theme: {
-      primaryColor: '#8b5e3c',
+      primaryColor: '#8b7561',
       pattern: { kind: 'none', opacity: 15, all: true },
       animation: { enabled: false, all: true },
     },

@@ -16,12 +16,12 @@ const embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=
     {loc.address && <p class="inv-muted mt-1 text-sm whitespace-pre-line">{loc.address}</p>}
   </div>
   <a href={href} target="_blank" rel="noopener noreferrer"
-    class={'inv-btn inline-block rounded-full px-6 py-3 text-sm ' + (split ? 'shrink-0' : 'mt-6')}>
+    class={'inv-btn inline-block rounded-[8px] px-6 py-3 text-sm font-medium ' + (split ? 'shrink-0' : 'mt-6')}>
     Buka di Google Maps
   </a>
 
   {query && (
-    <div class="mt-6 w-full overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+    <div class="mt-6 w-full overflow-hidden rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF]">
       <iframe src={embedUrl} title={`Peta ${loc.venueName}`} loading="lazy"
         referrerpolicy="no-referrer-when-downgrade" class="h-64 w-full border-0"></iframe>
     </div>

@@ -3,28 +3,31 @@ import EField from './EField.astro';
 import PhotoField from './PhotoField.astro';
 import PhotoListField from './PhotoListField.astro';
 ---
-<EField path="sections.cover.heading" label="Teks sampul" maxlength="60" placeholder="The Wedding Of" />
-<PhotoField path="sections.cover.imageId" label="Foto sampul (utama)" />
+<div class="space-y-5">
+  <EField path="sections.cover.heading" label="Teks sampul" maxlength="60" placeholder="The Wedding Of" />
+  <PhotoField path="sections.cover.imageId" label="Foto sampul (utama)" />
 
-<PhotoListField path="sections.cover.extraImageIds" max={7} label="Foto tambahan untuk slideshow"
-  emptyText="Belum ada foto tambahan. Dengan lebih dari satu foto, sampul menjadi slideshow." />
+  <PhotoListField path="sections.cover.extraImageIds" max={7} label="Foto tambahan untuk slideshow"
+    emptyText="Belum ada foto tambahan. Dengan lebih dari satu foto, sampul menjadi slideshow." />
 
-<div>
-  <label for="f-cover-interval" class="block text-xs text-gray-600">Jeda antar foto (detik)</label>
-  <input id="f-cover-interval" type="range" min="3" max="15" step="1"
-    data-bind="sections.cover.slideshow.interval" data-type="number" class="w-full" />
-  <p class="text-sm text-red-600" data-error-for="sections.cover.slideshow.interval"></p>
-</div>
-<label class="flex items-center gap-2 text-sm">
-  <input type="checkbox" data-bind="sections.cover.slideshow.zoom" /> Efek zoom pelan
-</label>
+  <div>
+    <label for="f-cover-interval" class="block text-xs text-[#6C5E54]">Jeda antar foto (detik)</label>
+    <input id="f-cover-interval" type="range" min="3" max="15" step="1"
+      data-bind="sections.cover.slideshow.interval" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+    <p class="text-xs text-[#A34E4E]" data-error-for="sections.cover.slideshow.interval"></p>
+  </div>
 
-<div>
-  <label for="f-cover-layout" class="block text-sm font-medium">Tata letak sampul</label>
-  <select id="f-cover-layout" data-bind="sections.cover.style.layout"
-    class="mt-1 w-full rounded border bg-white px-3 py-2 text-sm">
-    <option value="centered">Teks di atas foto (layar penuh)</option>
-    <option value="split">Foto di atas, teks di bawah</option>
-  </select>
-  <p class="mt-1 text-sm text-red-600" data-error-for="sections.cover.style.layout"></p>
+  <label class="flex items-center gap-2 text-sm text-[#493D35]">
+    <input type="checkbox" data-bind="sections.cover.slideshow.zoom" class="accent-[#8B7561]" />
+    Efek zoom pelan pada foto sampul
+  </label>
+
+  <div>
+    <label for="f-cover-layout" class="block text-sm font-medium text-[#493D35]">Tata letak sampul</label>
+    <select id="f-cover-layout" data-bind="sections.cover.style.layout" class="input-field mt-1.5 py-2 text-sm">
+      <option value="centered">Teks di atas foto (layar penuh)</option>
+      <option value="split">Foto di atas, teks di bawah</option>
+    </select>
+    <p class="mt-1 text-xs text-[#A34E4E]" data-error-for="sections.cover.style.layout"></p>
+  </div>
 </div>

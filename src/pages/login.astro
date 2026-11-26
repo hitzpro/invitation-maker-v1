@@ -1,5 +1,5 @@
 ---
-import '../styles/global.css';
+import AuthLayout from '../layouts/AuthLayout.astro';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
@@ -7,15 +7,24 @@ import { verifyPassword } from '../lib/password.js';
 import { createSession, setSessionCookie } from '../lib/session.js';
 import { clientIp, isRateLimited } from '../lib/guest.js';
 import { isRegistrationAllowed } from '../lib/settings.js';
+import { isDemoMode } from '../lib/demo.js';
+import { getCreatorBranding } from '../lib/branding.js';
 
 if (Astro.locals.user) return Astro.redirect('/dashboard');
 
+const demoMode = isDemoMode();
+const creator = getCreatorBranding();
+
+if (demoMode && Astro.request.method === 'POST') {
+  return new Response('Login dinonaktifkan pada mode demo showcase', { status: 403 });
+}
+
 let error = '';
 let email = '';
-const canRegister = await isRegistrationAllowed();
+const canRegister = demoMode ? false : await isRegistrationAllowed();
 
-if (Astro.request.method === 'POST') {
-const form = await Astro.request.formData();
+if (!demoMode && Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
   email = String(form.get('email') ?? '').trim().toLowerCase();
   const password = String(form.get('password') ?? '');
   const ip = clientIp(Astro.request, Astro.clientAddress);
@@ -31,35 +40,61 @@ const form = await Astro.request.formData();
       error = 'Email atau password salah';
     } else {
       const { token, expiresAt } = await createSession(user.id);
-      setSessionCookie(Astro.cookies, token, expiresAt);
+      setSessionCookie(Astro.cookies, token, expiresAt, Astro.request);
       return Astro.redirect(user.role === 'admin' ? '/admin' : '/dashboard');
     }
   }
 }
 ---
-<html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Masuk</title>
-  </head>
-  <body class="min-h-screen grid place-items-center bg-gray-50 p-4">
-    <form method="POST" class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4">
-      <h1 class="text-2xl font-bold">Masuk</h1>
-      {error && <p class="text-sm text-red-600">{error}</p>}
+<AuthLayout
+  title={demoMode ? 'Mode Demo Showcase' : 'Masuk'}
+  subtitle={demoMode
+    ? 'Halaman login dan dashboard hanya aktif saat aplikasi dijalankan secara lokal.'
+    : 'Masuk untuk mengelola undangan pernikahan dan daftar tamu Anda.'}
+>
+  {demoMode ? (
+    <div class="space-y-5">
+      <p class="text-sm leading-relaxed text-[#6C5E54]">
+        Deployment publik ini berfungsi sebagai pratinjau demo. Untuk membuat akun, masuk ke dashboard, dan menggunakan editor undangan penuh dengan database sendiri, silakan clone repositori dari GitHub dan jalankan di perangkat atau server lokal Anda.
+      </p>
+      <div class="flex flex-col gap-3">
+        <a href="/demo" class="btn-primary w-full py-2.5 text-center">
+          Lihat Demo Undangan
+        </a>
+        <a href="/#jalankan-lokal" class="btn-secondary w-full py-2.5 text-center">
+          Panduan Clone &amp; Instalasi Lokal
+        </a>
+      </div>
+      <p class="border-t border-[#D8C8B5]/70 pt-4 text-center text-xs text-[#6C5E54]">
+        <a href={creator.repoUrl} target="_blank" rel="noopener noreferrer"
+          class="font-medium text-[#8B7561] underline underline-offset-4 hover:text-[#493D35]">
+          Buka Repositori GitHub &rarr;
+        </a>
+      </p>
+    </div>
+  ) : (
+    <form method="POST" class="space-y-5">
+      {error && <p class="feedback-error">{error}</p>}
 
       <div>
-        <label class="block text-sm font-medium" for="email">Email</label>
-        <input id="email" name="email" type="email" value={email} required class="mt-1 w-full border rounded px-3 py-2" />
+        <label class="block text-sm font-medium text-[#493D35]" for="email">Email</label>
+        <input id="email" name="email" type="email" value={email} required placeholder="nama@email.com"
+          class="input-field mt-1.5" />
       </div>
 
       <div>
-        <label class="block text-sm font-medium" for="password">Password</label>
-        <input id="password" name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" />
+        <label class="block text-sm font-medium text-[#493D35]" for="password">Password</label>
+        <input id="password" name="password" type="password" required placeholder="Masukkan password"
+          class="input-field mt-1.5" />
       </div>
 
-      <button class="w-full bg-black text-white rounded py-2">Masuk</button>
-      {canRegister && <p class="text-sm text-center">Belum punya akun? <a href="/register" class="underline">Daftar</a></p>}
+      <button class="btn-primary w-full py-2.5">Masuk</button>
+
+      {canRegister && (
+        <p class="border-t border-[#D8C8B5]/70 pt-4 text-center text-sm text-[#6C5E54]">
+          Belum punya akun? <a href="/register" class="font-medium text-[#8B7561] underline underline-offset-4 hover:text-[#493D35]">Daftar</a>
+        </p>
+      )}
     </form>
-  </body>
-</html>
+  )}
+</AuthLayout>

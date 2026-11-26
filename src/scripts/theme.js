@@ -6,14 +6,13 @@ export function initTheme({ store }) {
     const kind = store.get('theme.pattern.kind');
     for (const btn of picks) {
       const on = btn.dataset.patternPick === kind;
-      btn.classList.toggle('border-black', on);
+      btn.classList.toggle('border-[#8B7561]', on);
       btn.classList.toggle('ring-2', on);
-      btn.classList.toggle('ring-black', on);
+      btn.classList.toggle('ring-[#8B7561]', on);
       btn.setAttribute('aria-pressed', String(on));
     }
   }
 
-  // Kontrol per section hanya berguna bila fitur menyala dan tidak berlaku "semua section"
   function refreshFlags() {
     const patternOff = store.get('theme.pattern.kind') === 'none';
     const patternAll = store.get('theme.pattern.all');
@@ -47,7 +46,6 @@ export function initTheme({ store }) {
   renderPicks();
   refreshFlags();
 
-    // Kontrol foto latar hanya tampil saat Latar = Foto
   document.querySelectorAll('[data-style-block]').forEach((block) => {
     const select = block.querySelector('[data-surface-select]');
     const box = block.querySelector('[data-bg-controls]');

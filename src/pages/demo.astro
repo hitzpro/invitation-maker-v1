@@ -1,0 +1,55 @@
+---
+import InvitationShell from '../layouts/InvitationShell.astro';
+import { getCreatorBranding } from '../lib/branding.js';
+import { buildDemoInvitationData } from '../lib/demo.js';
+import { guestNameFrom } from '../lib/render-data.js';
+import heroImg from '../assets/images/wedding_hero_editorial_1795598257960.jpg';
+import coupleImg from '../assets/images/wedding_couple_showcase_1795595645723.jpg';
+import stationeryImg from '../assets/images/wedding_stationery_detail_1795595645576.jpg';
+
+Astro.response.headers.set('Cache-Control', 'no-cache');
+
+const creator = getCreatorBranding();
+const guestName = guestNameFrom(Astro.url) || 'Bapak/Ibu Tamu Undangan';
+const { invitation, content, images, wishes, hasMoreWishes } = buildDemoInvitationData({
+  heroImg,
+  coupleImg,
+  stationeryImg,
+});
+---
+<InvitationShell
+  invitation={invitation}
+  content={content}
+  images={images}
+  wishes={wishes}
+  hasMoreWishes={hasMoreWishes}
+  guestName={guestName}
+>
+  <div slot="banner" class="sticky top-0 z-50 border-b border-[#D8C8B5] bg-[#493D35] px-4 py-2.5 text-xs text-[#F5F0E8]">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="font-medium text-white">Mode Demo Showcase</span>
+        <span class="text-[#D8C8B5]">·</span>
+        <span class="text-[#EAE3D7]">
+          Contoh undangan dummy. Clone repo di GitHub untuk membuat &amp; mengelola undangan Anda di lokal.
+        </span>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 shrink-0">
+        <a href="/demo?to=Budi+Santoso" class="underline underline-offset-4 hover:text-white">
+          Coba Sapaan Tamu
+        </a>
+        <a href="/#jalankan-lokal" class="underline underline-offset-4 hover:text-white">
+          Cara Jalankan di Lokal
+        </a>
+        <a
+          href={creator.repoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-[6px] bg-[#8B7561] px-2.5 py-1 font-medium text-white hover:bg-[#735F4D]"
+        >
+          Clone GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</InvitationShell>

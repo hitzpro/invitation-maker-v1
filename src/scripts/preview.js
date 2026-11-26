@@ -1,6 +1,4 @@
 // Preview langsung dengan dua iframe bergantian, tanpa kedip dan dengan posisi gulir terjaga.
-
-// id elemen section di template Classic
 const SECTION_DOM_ID = {
   cover: 'cover',
   couple: 'couple',
@@ -9,6 +7,7 @@ const SECTION_DOM_ID = {
   story: 'story',
   gallery: 'gallery',
   location: 'venue',
+  gift: 'gift',
   rsvp: 'rsvp',
   wishes: 'wishes',
   closing: 'closing',
@@ -30,10 +29,9 @@ export function initPreview({ invitationId }) {
 
   const setStatus = (text, isError = false) => {
     statusEl.textContent = text;
-    statusEl.className = isError ? 'text-red-600' : 'text-gray-500';
+    statusEl.className = isError ? 'text-[#A34E4E]' : 'text-[#6C5E54]';
   };
 
-  // Menampilkan satu iframe dan menyembunyikan yang lain
   function show(frame) {
     for (const f of frames) {
       const on = f === frame;
@@ -42,13 +40,18 @@ export function initPreview({ invitationId }) {
       f.classList.toggle('pointer-events-none', !on);
       f.setAttribute('aria-hidden', String(!on));
       f.tabIndex = on ? 0 : -1;
+      try {
+        f.contentDocument?.documentElement?.classList.toggle('preview-shown', on);
+      } catch {
+        // abaikan bila belum siap
+      }
     }
     active = frame;
   }
 
   function refresh() {
     if (loading) {
-      pending = true; // gabungkan pembaruan yang datang selama memuat
+      pending = true;
       return;
     }
 
@@ -75,11 +78,9 @@ export function initPreview({ invitationId }) {
     const onLoad = () => {
       try {
         const win = next.contentWindow;
-        // Dialihkan ke halaman lain (misalnya /login) berarti sesi berakhir
         if (win.location.pathname !== basePath) {
           return finish(false, 'Preview tidak dapat dimuat. Sesi mungkin berakhir, muat ulang halaman ini.');
         }
-        // posisi gulir dibaca saat pertukaran agar yang terbaru yang dipakai
         const y = prev.contentWindow?.scrollY ?? 0;
         win.scrollTo({ top: y, left: 0, behavior: 'instant' });
         show(next);
@@ -91,10 +92,9 @@ export function initPreview({ invitationId }) {
 
     const timer = setTimeout(() => finish(false, 'Preview terlalu lama dimuat.'), LOAD_TIMEOUT_MS);
     next.addEventListener('load', onLoad);
-    next.src = `${basePath}?embed=1&t=${Date.now()}`; // parameter t mencegah cache
+    next.src = `${basePath}?embed=1&t=${Date.now()}`;
   }
 
-  // Gulir halus ke section yang sedang diedit (bila section itu sedang tampil)
   function scrollToSection(key) {
     const win = active.contentWindow;
     const el = active.contentDocument?.getElementById(SECTION_DOM_ID[key] ?? '');
@@ -103,22 +103,23 @@ export function initPreview({ invitationId }) {
     else el.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 
-  // ---------- Pilihan lebar preview ----------
   const buttons = [...document.querySelectorAll('[data-device]')];
 
   function setDevice(name) {
     wrap.style.width = DEVICE_WIDTHS[name];
-    wrap.classList.toggle('shadow-xl', name !== 'full');
+    wrap.classList.toggle('shadow-md', name !== 'full');
     for (const b of buttons) {
       const on = b.dataset.device === name;
-      b.classList.toggle('bg-black', on);
+      b.classList.toggle('bg-[#8B7561]', on);
+      b.classList.toggle('border-[#8B7561]', on);
       b.classList.toggle('text-white', on);
+      b.classList.toggle('text-[#493D35]', !on);
       b.setAttribute('aria-pressed', String(on));
     }
     try {
       localStorage.setItem(DEVICE_KEY, name);
     } catch {
-      // penyimpanan browser tidak tersedia: abaikan
+      // abaikan
     }
   }
 
@@ -133,7 +134,7 @@ export function initPreview({ invitationId }) {
   setDevice(saved);
 
   show(frames[0]);
-  refresh(); // muat preview pertama
+  refresh();
 
   return { refresh, scrollToSection };
 }

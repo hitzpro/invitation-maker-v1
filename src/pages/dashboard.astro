@@ -6,7 +6,6 @@ import { invitations } from '../db/schema.js';
 
 const user = Astro.locals.user;
 
-// Hanya undangan milik user yang sedang login
 const list = await db
   .select()
   .from(invitations)
@@ -18,72 +17,144 @@ const published = list.filter((i) => i.status === 'published').length;
 const draft = total - published;
 
 const fmt = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' });
-const methodLabel = { automatic: 'Otomatis', manual: 'Manual' };
+const methodLabel = { automatic: 'Formulir Otomatis', manual: 'Editor Visual' };
 ---
-<AppLayout title="Dashboard">
-  <div class="flex items-center justify-between gap-4 flex-wrap">
+<AppLayout title="Dashboard" activeNav="dashboard">
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
     <div>
-      <h1 class="text-2xl font-bold">Halo, {user.name}</h1>
-      <p class="text-sm text-gray-600">Kelola undangan digitalmu di sini.</p>
+      <p class="text-xs uppercase tracking-[0.16em] text-[#6C5E54]">Ruang Kerja</p>
+      <h1 class="font-display mt-1 text-3xl font-medium tracking-tight text-[#493D35]">Halo, {user.name}</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">Kelola seluruh draf, publikasi, dan tautan undangan digital Anda.</p>
     </div>
-    <a href="/dashboard/invitations/new" class="bg-black text-white rounded px-4 py-2 text-sm">
-      + Buat Undangan Baru
-    </a>
+    <a href="/dashboard/invitations/new" class="btn-primary">Buat Undangan Baru</a>
   </div>
 
-  <section class="mt-6 grid grid-cols-3 gap-4">
-    <div class="bg-white border rounded-lg p-4">
-      <p class="text-sm text-gray-600">Total</p>
-      <p class="text-3xl font-bold">{total}</p>
+  <!-- Inline summary metrics (clean hairline strip, tabular-nums) -->
+  <section class="mt-6 grid grid-cols-3 divide-x divide-[#D8C8B5] rounded-[14px] border border-[#D8C8B5] bg-[#FFFFFF]">
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Total</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#493D35] sm:text-3xl">{total}</p>
     </div>
-    <div class="bg-white border rounded-lg p-4">
-      <p class="text-sm text-gray-600">Published</p>
-      <p class="text-3xl font-bold">{published}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Published</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#58765D] sm:text-3xl">{published}</p>
     </div>
-    <div class="bg-white border rounded-lg p-4">
-      <p class="text-sm text-gray-600">Draft</p>
-      <p class="text-3xl font-bold">{draft}</p>
+    <div class="px-5 py-4">
+      <p class="text-xs uppercase tracking-wider text-[#6C5E54]">Draft</p>
+      <p class="font-display mt-1 text-2xl font-medium tabular-nums text-[#8B7561] sm:text-3xl">{draft}</p>
     </div>
   </section>
 
   <section class="mt-8">
-    <h2 class="font-semibold mb-3">Undangan Saya</h2>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="font-display text-xl font-medium text-[#493D35]">Undangan Saya</h2>
+
+      {list.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="inv-search" class="sr-only">Cari undangan</label>
+          <input id="inv-search" type="search" placeholder="Cari judul atau slug..."
+            class="input-field w-52 py-1.5 text-xs" />
+          <div class="inline-flex rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] p-0.5 text-xs" role="group" aria-label="Filter status">
+            <button type="button" data-status-filter="all"
+              class="rounded-[6px] bg-[#8B7561] px-2.5 py-1 font-medium text-white">Semua</button>
+            <button type="button" data-status-filter="published"
+              class="rounded-[6px] px-2.5 py-1 text-[#6C5E54] hover:text-[#493D35]">Published</button>
+            <button type="button" data-status-filter="draft"
+              class="rounded-[6px] px-2.5 py-1 text-[#6C5E54] hover:text-[#493D35]">Draft</button>
+          </div>
+        </div>
+      )}
+    </div>
 
     {list.length === 0 ? (
-      <div class="bg-white border border-dashed rounded-lg p-10 text-center">
-        <p class="font-medium">Belum ada undangan</p>
-        <p class="text-sm text-gray-600 mt-1">Buat undangan pertamamu sekarang.</p>
-        <a href="/dashboard/invitations/new" class="inline-block mt-4 bg-black text-white rounded px-4 py-2 text-sm">
-          Buat Undangan
-        </a>
+      <div class="surface-panel mt-4 px-6 py-12 text-center">
+        <h3 class="font-display text-xl font-medium text-[#493D35]">Belum ada undangan</h3>
+        <p class="mx-auto mt-2 max-w-md text-sm text-[#6C5E54]">
+          Mulai buat undangan pernikahan pertama Anda dengan memilih alur formulir terstruktur atau editor visual.
+        </p>
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <a href="/dashboard/invitations/new" class="btn-primary">Buat Undangan Pertama</a>
+          <a href="/demo" target="_blank" rel="noopener" class="btn-secondary">Lihat Contoh Undangan</a>
+        </div>
       </div>
     ) : (
-      <ul class="space-y-3">
-        {list.map((inv) => (
-          <li class="bg-white border rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
-            <div class="min-w-0">
-              <p class="font-medium truncate">{inv.title}</p>
-              <p class="text-xs text-gray-600 mt-1">
-                /{inv.slug} · {methodLabel[inv.method]} · diperbarui {fmt.format(inv.updatedAt)}
-              </p>
-            </div>
-            <div class="flex items-center gap-3">
-              {inv.isDisabled && (
-                <span class="text-xs px-2 py-1 rounded bg-red-100 text-red-700">Dinonaktifkan</span>
-              )}
-              <span
-                class={
-                  'text-xs px-2 py-1 rounded ' +
-                  (inv.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700')
-                }
-              >
-                {inv.status === 'published' ? 'Published' : 'Draft'}
-              </span>
-              <a href={`/dashboard/invitations/${inv.id}`} class="text-sm underline">Kelola</a>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <>
+        <ul id="inv-list" class="surface-panel mt-4 divide-y divide-[#D8C8B5]">
+          {list.map((inv) => (
+            <li data-inv-item data-title={inv.title.toLowerCase()} data-slug={inv.slug.toLowerCase()} data-status={inv.status}
+              class="flex flex-wrap items-center justify-between gap-4 px-6 py-5 transition-colors hover:bg-[#F5F0E8]/45">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <p class="truncate text-base font-medium text-[#493D35]">{inv.title}</p>
+                  {inv.isDisabled && (
+                    <span class="status-tag status-error">Dinonaktifkan</span>
+                  )}
+                  <span class={'status-tag ' + (inv.status === 'published' ? 'status-success' : 'status-neutral')}>
+                    {inv.status === 'published' ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+                <p class="mt-1.5 text-xs text-[#6C5E54]">
+                  /{inv.slug} · {methodLabel[inv.method]} · Diperbarui {fmt.format(inv.updatedAt)}
+                </p>
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                {inv.status === 'published' && !inv.isDisabled && (
+                  <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="btn-secondary px-3 py-1.5 text-xs">
+                    Buka Publik
+                  </a>
+                )}
+                <a href={`/dashboard/invitations/${inv.id}`} class="btn-primary px-3.5 py-1.5 text-xs">
+                  Kelola
+                </a>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p id="inv-empty-filter" class="surface-panel mt-4 hidden px-6 py-8 text-center text-sm text-[#6C5E54]">
+          Tidak ada undangan yang cocok dengan filter pencarian.
+        </p>
+      </>
     )}
   </section>
 </AppLayout>
+
+<script>
+  const searchInput = document.getElementById('inv-search');
+  const filterBtns = [...document.querySelectorAll('[data-status-filter]')];
+  const items = [...document.querySelectorAll('[data-inv-item]')];
+  const emptyFilter = document.getElementById('inv-empty-filter');
+  const listEl = document.getElementById('inv-list');
+
+  let activeStatus = 'all';
+
+  function applyFilter() {
+    if (!items.length) return;
+    const q = (searchInput?.value ?? '').trim().toLowerCase();
+    let shown = 0;
+
+    for (const el of items) {
+      const matchQuery = !q || el.dataset.title.includes(q) || el.dataset.slug.includes(q);
+      const matchStatus = activeStatus === 'all' || el.dataset.status === activeStatus;
+      const visible = matchQuery && matchStatus;
+      el.classList.toggle('hidden', !visible);
+      if (visible) shown += 1;
+    }
+
+    listEl?.classList.toggle('hidden', shown === 0);
+    emptyFilter?.classList.toggle('hidden', shown > 0);
+  }
+
+  searchInput?.addEventListener('input', applyFilter);
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeStatus = btn.dataset.statusFilter;
+      filterBtns.forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('bg-[#8B7561]', on);
+        b.classList.toggle('text-white', on);
+        b.classList.toggle('text-[#6C5E54]', !on);
+      });
+      applyFilter();
+    });
+  });
+</script>

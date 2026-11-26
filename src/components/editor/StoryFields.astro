@@ -1,106 +1,29 @@
 ---
-import PhotoField from './PhotoField.astro';
+import EField from './EField.astro';
+import { MAX_STORIES } from '../../lib/content-schema.js';
 
-const { sectionKey } = Astro.props;
-const base = `sections.${sectionKey}.style`;
-const id = (name) => `f-${sectionKey}-${name}`;
-const selectClass = 'mt-1 w-full rounded border bg-white px-2 py-1.5 text-sm';
-
-const SURFACES = [
-  ['plain', 'Polos'],
-  ['white', 'Putih'],
-  ['tint', 'Tint warna tema'],
-  ['solid', 'Warna tema penuh'],
-  ['image', 'Foto'],
-];
-
-const LAYOUT_HINTS = {
-  couple: 'Split: kedua mempelai berdampingan.',
-  event: 'Split: kartu acara berdampingan.',
-  countdown: 'Split: judul di kiri, hitungan di kanan.',
-  location: 'Split: teks di kiri, tombol di kanan.',
-  closing: 'Split: pesan di kiri, nama di kanan.',
-};
-
-const FRAMES = [
-  ['circle', 'Lingkaran'], ['rounded', 'Kotak membulat'], ['arch', 'Lengkung'],
-  ['oval', 'Oval'], ['hexagon', 'Segi enam'], ['heart', 'Hati'],
-];
-const GALLERY_LAYOUTS = [['grid', 'Grid'], ['carousel', 'Geser ke samping'], ['masonry', 'Masonry'], ['mosaic', 'Mosaik']];
-const TIMELINES = [['line', 'Garis di kiri'], ['alternate', 'Zig-zag'], ['cards', 'Kartu'], ['minimal', 'Minimal']];
+const blank = JSON.stringify({ title: '', date: '', text: '' });
 ---
-<div class="space-y-3 rounded border bg-gray-50 p-3" data-style-block>
-  <p class="text-sm font-medium">Gaya section</p>
-
-  {Object.hasOwn(LAYOUT_HINTS, sectionKey) && (
-    <div>
-      <label for={id('layout')} class="block text-xs text-gray-600">Tata letak</label>
-      <select id={id('layout')} data-bind={`${base}.layout`} class={selectClass}>
-        <option value="centered">Terpusat</option>
-        <option value="split">Split (dua kolom)</option>
-      </select>
-      <p class="mt-1 text-xs text-gray-500">{LAYOUT_HINTS[sectionKey]}</p>
-    </div>
-  )}
-
-  {sectionKey === 'couple' && (
-    <div>
-      <label for={id('frame')} class="block text-xs text-gray-600">Bingkai foto mempelai</label>
-      <select id={id('frame')} data-bind={`${base}.frame`} class={selectClass}>
-        {FRAMES.map(([value, label]) => <option value={value}>{label}</option>)}
-      </select>
-    </div>
-  )}
-
-  {sectionKey === 'story' && (
-    <div>
-      <label for={id('timeline')} class="block text-xs text-gray-600">Gaya timeline</label>
-      <select id={id('timeline')} data-bind={`${base}.timeline`} class={selectClass}>
-        {TIMELINES.map(([value, label]) => <option value={value}>{label}</option>)}
-      </select>
-    </div>
-  )}
-
-  {sectionKey === 'gallery' && (
-    <div>
-      <label for={id('gallery-layout')} class="block text-xs text-gray-600">Tata letak galeri</label>
-      <select id={id('gallery-layout')} data-bind={`${base}.layout`} class={selectClass}>
-        {GALLERY_LAYOUTS.map(([value, label]) => <option value={value}>{label}</option>)}
-      </select>
-    </div>
-  )}
-
-  <div>
-    <label for={id('surface')} class="block text-xs text-gray-600">Latar</label>
-    <select id={id('surface')} data-surface-select data-bind={`${base}.surface`} class={selectClass}>
-      {SURFACES.map(([value, label]) => <option value={value}>{label}</option>)}
-    </select>
-  </div>
-
-  <div data-bg-controls class="hidden space-y-2 rounded border bg-white p-2">
-    <PhotoField path={`${base}.bg.imageId`} label="Foto latar" />
-    <div>
-      <label for={id('bg-opacity')} class="block text-xs text-gray-600">Opasitas foto (makin kecil makin transparan)</label>
-      <input id={id('bg-opacity')} type="range" min="10" max="100" step="5"
-        data-bind={`${base}.bg.opacity`} data-type="number" class="w-full" />
-    </div>
-    <div>
-      <label for={id('bg-overlay')} class="block text-xs text-gray-600">Overlay gelap</label>
-      <input id={id('bg-overlay')} type="range" min="0" max="80" step="5"
-        data-bind={`${base}.bg.overlay`} data-type="number" class="w-full" />
-    </div>
-    <p class="text-xs text-gray-500">Teks otomatis berwarna putih dengan bayangan tipis agar tetap terbaca di atas foto.</p>
-    <p class="text-sm text-red-600" data-error-for={`${base}.bg.imageId`}></p>
-  </div>
-
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" data-bind={`${base}.pattern`} data-style-flag="pattern" /> Pakai pola latar
-  </label>
-  <label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" data-bind={`${base}.animate`} data-style-flag="animate" />
-    {sectionKey === 'gallery' || sectionKey === 'story' ? 'Animasi fade-in per item' : 'Animasi fade-in'}
-  </label>
-  <p class="text-xs text-gray-500">
-    Dua kotak centang di atas aktif bila fiturnya dinyalakan di "Tema dan warna" dan opsi "Terapkan ke semua section" dimatikan.
+<div data-list="sections.story.items" data-max={MAX_STORIES} data-blank={blank} class="space-y-4">
+  <p data-empty class="text-xs leading-relaxed text-[#6C5E54]">
+    Belum ada kisah. Tambahkan momen perjalanan Anda, atau nonaktifkan section ini bila tidak diperlukan.
   </p>
+  <div data-items class="space-y-5"></div>
+  <button type="button" data-add-item class="btn-secondary w-full py-2 text-xs">
+    Tambah Momen Cerita
+  </button>
+
+  <template>
+    <div class="space-y-3 border-b border-[#D8C8B5] pb-5">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-medium uppercase tracking-wider text-[#493D35]">Cerita <span data-item-number></span></p>
+        <button type="button" data-remove-item class="text-xs font-medium text-[#A34E4E] underline underline-offset-4">Hapus</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <EField path="sections.story.items.__i__.title" label="Judul" maxlength="80" placeholder="Pertemuan pertama" />
+        <EField path="sections.story.items.__i__.date" label="Waktu" maxlength="40" placeholder="Mei 2019" />
+      </div>
+      <EField path="sections.story.items.__i__.text" label="Cerita" rows="3" maxlength="600" />
+    </div>
+  </template>
 </div>

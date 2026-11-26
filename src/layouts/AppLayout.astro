@@ -1,9 +1,39 @@
 ---
 import '../styles/global.css';
 import { getAppName } from '../lib/settings.js';
-const { title = 'Dashboard' } = Astro.props;
+import { getCreatorBranding } from '../lib/branding.js';
+
+const {
+  title = 'Dashboard',
+  activeNav = '',
+  invitationNav = null,
+} = Astro.props;
+
 const user = Astro.locals.user;
 const appName = await getAppName();
+const creator = getCreatorBranding();
+const path = Astro.url.pathname;
+
+const isActive = (key, prefix) =>
+  activeNav ? activeNav === key : path === prefix || (prefix !== '/dashboard' && path.startsWith(prefix));
+
+const navLinkClass = (active) =>
+  'block rounded-[8px] px-3.5 py-2 text-sm transition-colors ' +
+  (active
+    ? 'bg-[#F5F0E8] font-medium text-[#493D35] border border-[#D8C8B5]'
+    : 'text-[#6C5E54] hover:bg-[#F5F0E8]/70 hover:text-[#493D35] border border-transparent');
+
+const subNavItems = invitationNav
+  ? [
+      { key: 'overview', label: 'Ringkasan', href: `/dashboard/invitations/${invitationNav.id}` },
+      invitationNav.method === 'automatic'
+        ? { key: 'form', label: 'Formulir', href: `/dashboard/invitations/${invitationNav.id}/form` }
+        : { key: 'editor', label: 'Editor Visual', href: `/dashboard/invitations/${invitationNav.id}/editor` },
+      { key: 'preview', label: 'Preview', href: `/dashboard/invitations/${invitationNav.id}/preview`, blank: true },
+      { key: 'guests', label: 'RSVP & Ucapan', href: `/dashboard/invitations/${invitationNav.id}/guests` },
+      { key: 'share', label: 'Tamu & Sebar', href: `/dashboard/invitations/${invitationNav.id}/share` },
+    ]
+  : [];
 ---
 <html lang="id">
   <head>
@@ -11,22 +41,145 @@ const appName = await getAppName();
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} · {appName}</title>
   </head>
-  <body class="min-h-screen bg-gray-50 text-gray-900">
-    <header class="bg-white border-b">
-      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <a href="/dashboard" class="font-bold">{appName}</a>
-        <nav class="flex items-center gap-4 text-sm">
-          <a href="/dashboard/account" class="underline">Akun</a>
-          {user?.role === 'admin' && <a href="/admin" class="underline">Admin</a>}
-          <span class="hidden sm:inline text-gray-600">{user?.name}</span>
+  <body class="min-h-screen bg-[#F5F0E8] text-[#493D35] antialiased">
+    <div class="min-h-screen lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
+      {/* Backdrop mobile drawer */}
+      <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-[#493D35]/30 backdrop-blur-[1px] lg:hidden"></div>
+
+      {/* Minimalist Left Sidebar */}
+      <aside id="app-sidebar"
+        class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col justify-between border-r border-[#D8C8B5] bg-[#FFFFFF] px-5 py-6 transition-transform duration-200 lg:static lg:translate-x-0">
+        <div>
+          <div class="flex items-center justify-between gap-2 pb-6 border-b border-[#D8C8B5]/70">
+            <a href="/" class="font-display text-xl font-medium tracking-tight text-[#493D35] whitespace-nowrap">
+              {appName}
+            </a>
+            <button type="button" id="sidebar-close" class="text-xs font-medium text-[#6C5E54] underline lg:hidden">
+              Tutup
+            </button>
+          </div>
+
+          <div class="mt-6">
+            <a href="/dashboard/invitations/new" class="btn-primary w-full text-center">
+              Buat Undangan
+            </a>
+          </div>
+
+          <nav aria-label="Navigasi utama" class="mt-6 space-y-1">
+            <a href="/dashboard" class={navLinkClass(isActive('dashboard', '/dashboard') && !path.startsWith('/dashboard/invitations/new') && !path.startsWith('/dashboard/account'))}>
+              Dashboard
+            </a>
+            <a href="/dashboard/account" class={navLinkClass(isActive('account', '/dashboard/account'))}>
+              Pengaturan Akun
+            </a>
+            {user?.role === 'admin' && (
+              <a href="/admin" class={navLinkClass(isActive('admin', '/admin'))}>
+                Panel Admin
+              </a>
+            )}
+          </nav>
+        </div>
+
+        <div class="border-t border-[#D8C8B5]/70 pt-5">
+          <div class="mb-3">
+            <p class="truncate text-sm font-medium text-[#493D35]">{user?.name}</p>
+            <p class="truncate text-xs text-[#6C5E54]">{user?.email}</p>
+          </div>
           <form method="POST" action="/api/logout">
-            <button class="border rounded px-3 py-1 hover:bg-gray-100">Keluar</button>
+            <button class="btn-secondary w-full py-2 text-xs">Keluar</button>
           </form>
-        </nav>
+        </div>
+      </aside>
+
+      {/* Main Content Column */}
+      <div class="flex min-w-0 flex-col">
+        <header class="border-b border-[#D8C8B5] bg-[#FFFFFF]/80 backdrop-blur-sm">
+          <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
+            <div class="flex min-w-0 items-center gap-3">
+              <button type="button" id="sidebar-open"
+                class="btn-secondary px-3 py-1.5 text-xs lg:hidden" aria-label="Buka navigasi">
+                Menu
+              </button>
+              <span class="truncate text-sm font-medium text-[#6C5E54]">{title}</span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-[#6C5E54] whitespace-nowrap">
+              <span class="hidden sm:inline">{user?.role === 'admin' ? 'Administrator' : 'Pemilik Undangan'}</span>
+              <a href="/" class="underline underline-offset-4 hover:text-[#493D35]">Halaman Publik</a>
+              <a
+                href={creator.repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Repositori GitHub"
+                title={`Repositori GitHub (${creator.displayHandle})`}
+                class="inline-flex h-8 w-8 items-center justify-center rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] text-[#493D35] hover:border-[#8B7561] hover:text-[#8B7561] transition-colors shrink-0"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          {invitationNav && (
+            <div class="border-t border-[#D8C8B5]/70 bg-[#FFFFFF]">
+              <div class="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-5 py-2 sm:px-8">
+                {subNavItems.map((item) => (
+                  <a href={item.href}
+                    target={item.blank ? '_blank' : undefined}
+                    rel={item.blank ? 'noopener' : undefined}
+                    class={
+                      'whitespace-nowrap rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors ' +
+                      (invitationNav.active === item.key
+                        ? 'bg-[#8B7561] text-white'
+                        : 'text-[#6C5E54] hover:bg-[#F5F0E8] hover:text-[#493D35]')
+                    }>
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </header>
+
+        <main class="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:px-8 lg:py-10">
+          <slot />
+        </main>
+
+        <footer class="border-t border-[#D8C8B5]/80 py-5 text-xs text-[#6C5E54]">
+          <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 sm:px-8">
+            <span>&copy; {new Date().getFullYear()} {appName}</span>
+            <span>
+              Dibuat oleh{' '}
+              <a href={creator.githubUrl} target="_blank" rel="noopener noreferrer"
+                class="font-medium text-[#493D35] underline underline-offset-4 hover:text-[#8B7561]">
+                {creator.displayHandle}
+              </a>
+              {' '}·{' '}
+              <a href={creator.repoUrl} target="_blank" rel="noopener noreferrer"
+                class="hover:text-[#493D35] underline underline-offset-4">
+                Repositori GitHub
+              </a>
+            </span>
+          </div>
+        </footer>
       </div>
-    </header>
-    <main class="max-w-5xl mx-auto px-4 py-8">
-      <slot />
-    </main>
+    </div>
+
+    <script>
+      const sidebar = document.getElementById('app-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const openBtn = document.getElementById('sidebar-open');
+      const closeBtn = document.getElementById('sidebar-close');
+
+      const setOpen = (open) => {
+        if (!sidebar || !backdrop) return;
+        sidebar.classList.toggle('-translate-x-full', !open);
+        backdrop.classList.toggle('hidden', !open);
+      };
+
+      openBtn?.addEventListener('click', () => setOpen(true));
+      closeBtn?.addEventListener('click', () => setOpen(false));
+      backdrop?.addEventListener('click', () => setOpen(false));
+    </script>
   </body>
 </html>

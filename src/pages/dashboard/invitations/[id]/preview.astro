@@ -11,34 +11,54 @@ const { id } = Astro.params;
 const inv = await getOwnedInvitation(id, user.id);
 if (!inv) return Astro.rewrite('/404');
 
-// Konten draft bersifat privat: jangan di-cache
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 
 const { content, images, wishes, hasMoreWishes } = await getRenderData(inv.id);
 const guestName = guestNameFrom(Astro.url);
-const embed = Astro.url.searchParams.get('embed') === '1'; // di dalam iframe editor: sembunyikan banner
+const embed = Astro.url.searchParams.get('embed') === '1';
 
 const shown = visibleSections(content, images);
 const hidden = content.sectionOrder.filter((k) => !shown.includes(k)).map((k) => SECTION_LABELS[k]);
 const isLive = inv.status === 'published' && !inv.isDisabled;
 ---
 <InvitationShell invitation={inv} content={content} images={images} wishes={wishes} hasMoreWishes={hasMoreWishes} guestName={guestName}>
-  <div slot="banner" class="sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white">
-      <div slot="banner" class={`sticky top-0 z-50 bg-black px-4 py-2 text-xs text-white ${embed ? 'hidden' : ''}`}>
-      <span>
-        Mode preview · status: <strong>{inv.status === 'published' ? 'Published' : 'Draft'}</strong>
-        {inv.isDisabled && ' (dinonaktifkan admin)'} · hanya terlihat olehmu
-      </span>
-      <span class="flex gap-3">
-        <a href={`/dashboard/invitations/${id}`} class="underline">Kelola</a>
-        {inv.method === 'automatic' && (
-          <a href={`/dashboard/invitations/${id}/form`} class="underline">Edit formulir</a>
-        )}
-        {isLive && <a href={`/${inv.slug}`} target="_blank" rel="noopener" class="underline">Versi publik</a>}
-      </span>
+  {!embed && (
+    <div slot="banner" class="sticky top-0 z-50 border-b border-[#D8C8B5] bg-[#493D35] px-4 py-2.5 text-xs text-[#F5F0E8]">
+      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-medium text-white">Mode Preview</span>
+          <span class="text-[#D8C8B5]">·</span>
+          <span>
+            Status: <strong class="text-white">{inv.status === 'published' ? 'Published' : 'Draft'}</strong>
+            {inv.isDisabled && ' (dinonaktifkan admin)'} · Hanya terlihat oleh Anda
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href={`/dashboard/invitations/${id}`} class="underline underline-offset-4 hover:text-white">
+            Kembali ke Ringkasan
+          </a>
+          {inv.method === 'automatic' ? (
+            <a href={`/dashboard/invitations/${id}/form`} class="underline underline-offset-4 hover:text-white">
+              Edit Formulir
+            </a>
+          ) : (
+            <a href={`/dashboard/invitations/${id}/editor`} class="underline underline-offset-4 hover:text-white">
+              Buka Editor Visual
+            </a>
+          )}
+          {isLive && (
+            <a href={`/${inv.slug}`} target="_blank" rel="noopener"
+              class="rounded-[6px] bg-[#8B7561] px-2.5 py-1 font-medium text-white hover:bg-[#735F4D]">
+              Versi Publik
+            </a>
+          )}
+        </div>
+      </div>
+      {hidden.length > 0 && (
+        <p class="mx-auto mt-1.5 max-w-5xl text-[11px] text-[#D8C8B5]">
+          Section tersembunyi (data kosong atau dinonaktifkan): {hidden.join(', ')}
+        </p>
+      )}
     </div>
-    {hidden.length > 0 && (
-      <p class="mt-1 text-white/70">Tidak tampil: {hidden.join(', ')} (data belum diisi atau section dinonaktifkan)</p>
-    )}
-  </div>
+  )}
 </InvitationShell>

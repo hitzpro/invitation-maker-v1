@@ -31,7 +31,7 @@ const people = [
                 loading="lazy" decoding="async" />
             </button>
           )}
-          <h3 class={'mt-4 ' + (layout === 'split' ? 'text-xl' : 'text-2xl')}>{person.fullName}</h3>
+          <h3 class={'mt-4 ' + (layout === 'split' ? 'text-xl' : 'text-2xl')}>{person.fullName || person.name}</h3>
           {person.parents && <p class="inv-muted mt-1 text-sm">{label} {person.parents}</p>}
         </article>
       </>
@@ -39,11 +39,13 @@ const people = [
   </div>
 </section>
 
-<dialog data-couple-dialog class="m-auto max-h-[92vh] max-w-[92vw] border-0 bg-transparent p-0 backdrop:bg-black/85">
+<dialog data-couple-dialog class="m-auto max-h-[92vh] max-w-[92vw] border-0 bg-transparent p-0 backdrop:bg-[#493D35]/85">
   <div class="relative">
-    <img data-couple-dialog-img alt="" class="max-h-[88vh] max-w-[92vw] rounded object-contain" />
+    <img data-couple-dialog-img alt="" class="max-h-[88vh] max-w-[92vw] rounded-[10px] object-contain" />
     <button type="button" data-couple-dialog-close aria-label="Tutup"
-      class="absolute right-2 top-2 h-9 w-9 rounded-full bg-black/60 text-lg text-white">✕</button>
+      class="absolute right-2.5 top-2.5 rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF]/95 px-3 py-1.5 text-xs font-medium text-[#493D35]">
+      Tutup
+    </button>
   </div>
 </dialog>
 

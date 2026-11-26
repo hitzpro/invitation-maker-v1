@@ -37,35 +37,78 @@ if (Astro.request.method === 'POST') {
       error = 'Password lama salah';
     } else {
       await db.update(users).set({ passwordHash: await hashPassword(parsed.data.newPassword) }).where(eq(users.id, user.id));
-      // Cabut semua sesi lama lalu terbitkan sesi baru agar perangkat lain keluar
       await db.delete(sessions).where(eq(sessions.userId, user.id));
       const { token, expiresAt } = await createSession(user.id);
-      setSessionCookie(Astro.cookies, token, expiresAt);
+      setSessionCookie(Astro.cookies, token, expiresAt, Astro.request);
       return Astro.redirect('/dashboard/account?saved=1');
     }
   }
 }
 ---
-<AppLayout title="Akun & Keamanan">
-  <a href="/dashboard" class="text-sm underline">← Kembali ke dashboard</a>
-  <h1 class="mt-2 text-2xl font-bold">Ubah Password</h1>
+<AppLayout title="Pengaturan Akun" activeNav="account">
+  <div class="flex flex-wrap items-end justify-between gap-4 border-b border-[#D8C8B5] pb-6">
+    <div>
+      <a href="/dashboard" class="text-xs font-medium text-[#6C5E54] underline underline-offset-4 hover:text-[#493D35]">
+        Kembali ke Dashboard
+      </a>
+      <h1 class="font-display mt-2 text-3xl font-medium tracking-tight text-[#493D35]">Akun &amp; Keamanan</h1>
+      <p class="mt-1 text-sm text-[#6C5E54]">Informasi profil akun Anda dan pembaruan kata sandi.</p>
+    </div>
+  </div>
 
-  <form method="POST" class="mt-6 max-w-md space-y-4 rounded-lg border bg-white p-6">
-    {saved && <p class="rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">Password berhasil diperbarui.</p>}
-    {error && <p class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+  <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+    <!-- Informasi Akun -->
+    <section class="surface-panel p-6 sm:p-7">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Informasi Akun</h2>
+      <p class="mt-1 text-xs text-[#6C5E54]">Detail identitas akun yang sedang masuk.</p>
 
-    <div>
-      <label for="currentPassword" class="block text-sm font-medium">Password lama</label>
-      <input id="currentPassword" name="currentPassword" type="password" required class="mt-1 w-full rounded border px-3 py-2 text-sm" />
-    </div>
-    <div>
-      <label for="newPassword" class="block text-sm font-medium">Password baru</label>
-      <input id="newPassword" name="newPassword" type="password" required minlength="8" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
-    </div>
-    <div>
-      <label for="confirmPassword" class="block text-sm font-medium">Ulangi password baru</label>
-      <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
-    </div>
-    <button class="rounded bg-black px-4 py-2 text-sm text-white">Simpan Password</button>
-  </form>
+      <dl class="mt-6 divide-y divide-[#D8C8B5]/80 text-sm">
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="text-[#6C5E54]">Nama lengkap</dt>
+          <dd class="font-medium text-[#493D35]">{user.name}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="text-[#6C5E54]">Email</dt>
+          <dd class="truncate font-medium text-[#493D35]">{user.email}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3">
+          <dt class="text-[#6C5E54]">Peran</dt>
+          <dd>
+            <span class="status-tag status-neutral">
+              {user.role === 'admin' ? 'Administrator' : 'Pemilik Undangan'}
+            </span>
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Form Ubah Password -->
+    <section class="surface-panel p-6 sm:p-7">
+      <h2 class="font-display text-lg font-medium text-[#493D35]">Ubah Password</h2>
+      <p class="mt-1 text-xs text-[#6C5E54]">
+        Mengubah password akan mengeluarkan sesi di perangkat lain secara otomatis.
+      </p>
+
+      <form method="POST" class="mt-5 space-y-4">
+        {saved && <p class="feedback-success">Password berhasil diperbarui.</p>}
+        {error && <p class="feedback-error">{error}</p>}
+
+        <div>
+          <label for="currentPassword" class="block text-sm font-medium text-[#493D35]">Password lama</label>
+          <input id="currentPassword" name="currentPassword" type="password" required class="input-field mt-1.5" />
+        </div>
+        <div>
+          <label for="newPassword" class="block text-sm font-medium text-[#493D35]">Password baru</label>
+          <input id="newPassword" name="newPassword" type="password" required minlength="8" class="input-field mt-1.5" />
+        </div>
+        <div>
+          <label for="confirmPassword" class="block text-sm font-medium text-[#493D35]">Ulangi password baru</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8" class="input-field mt-1.5" />
+        </div>
+        <div class="pt-1">
+          <button class="btn-primary">Simpan Password</button>
+        </div>
+      </form>
+    </section>
+  </div>
 </AppLayout>

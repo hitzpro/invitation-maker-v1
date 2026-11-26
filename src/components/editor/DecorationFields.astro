@@ -14,63 +14,73 @@ const POSITIONS = [
   ['bottom-left', 'Kiri bawah'], ['bottom-center', 'Tengah bawah'], ['bottom-right', 'Kanan bawah'],
 ];
 const SIZES = [['sm', 'Kecil'], ['md', 'Sedang'], ['lg', 'Besar']];
-const selectClass = 'mt-1 w-full rounded border bg-white px-2 py-1.5 text-sm';
+const selectClass = 'input-field mt-1 py-1.5 text-xs';
 ---
-<div data-list="decorations" data-max={MAX_DECORATIONS} data-blank={blank} class="space-y-3">
-  <p class="text-xs text-gray-500">Warna hiasan mengikuti warna tema. Di cover dan latar "Warna tema penuh", hiasan berwarna putih.</p>
-  <div data-ornaments class="space-y-2 rounded border bg-gray-50 p-3">
+<div data-list="decorations" data-max={MAX_DECORATIONS} data-blank={blank} class="space-y-4">
+  <p class="text-xs leading-relaxed text-[#6C5E54]">
+    Warna hiasan mengikuti warna tema. Di sampul dan latar warna tema penuh, hiasan otomatis berwarna putih.
+  </p>
+
+  <div data-ornaments class="space-y-2.5 border-y border-[#D8C8B5] py-4">
     <div class="flex items-center justify-between gap-2">
-      <p class="text-xs font-medium text-gray-700">Koleksi SVG unggahan</p>
-      <label class="cursor-pointer rounded border bg-white px-2.5 py-1 text-xs hover:bg-gray-100">
-        + Unggah SVG
+      <p class="text-xs font-medium text-[#493D35]">Koleksi SVG unggahan</p>
+      <label class="btn-secondary cursor-pointer px-3 py-1 text-xs">
+        Unggah SVG
         <input type="file" accept=".svg,image/svg+xml" class="hidden" data-ornament-upload />
       </label>
     </div>
-    <p data-ornament-msg class="text-xs text-red-600"></p>
-    <ul data-ornament-list class="space-y-1"></ul>
+    <p data-ornament-msg class="text-xs text-[#A34E4E]"></p>
+    <ul data-ornament-list class="space-y-1.5"></ul>
   </div>
-  <p data-empty class="text-sm text-gray-500">Belum ada hiasan.</p>
-  <div data-items class="space-y-3"></div>
-  <button type="button" data-add-item
-    class="rounded border px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-40">+ Tambah hiasan</button>
-  <p class="text-sm text-red-600" data-error-for="decorations"></p>
+
+  <p data-empty class="text-sm text-[#6C5E54]">Belum ada hiasan terpasang.</p>
+  <div data-items class="space-y-4"></div>
+  <button type="button" data-add-item class="btn-secondary w-full py-2 text-xs">
+    Tambah Hiasan
+  </button>
+  <p class="text-xs text-[#A34E4E]" data-error-for="decorations"></p>
 
   <template>
-    <div class="space-y-2 rounded border p-3">
+    <div class="space-y-2.5 border-b border-[#D8C8B5] pb-4">
       <div class="flex items-center justify-between">
-        <p class="text-sm font-medium">Hiasan <span data-item-number></span></p>
-        <button type="button" data-remove-item class="text-sm text-red-600 underline">Hapus</button>
+        <p class="text-xs font-medium uppercase tracking-wider text-[#493D35]">
+          Hiasan <span data-item-number></span>
+        </p>
+        <button type="button" data-remove-item class="text-xs font-medium text-[#A34E4E] underline underline-offset-4">
+          Hapus
+        </button>
       </div>
-      <div class="grid grid-cols-2 gap-2">
-        <label class="block text-xs text-gray-600">Jenis
+      <div class="grid grid-cols-2 gap-2.5">
+        <label class="block text-xs text-[#6C5E54]">Jenis
           <select data-bind="decorations.__i__.kind" class={selectClass}>
             {KINDS.map(([value, label]) => <option value={value}>{label}</option>)}
           </select>
         </label>
-        <label class="block text-xs text-gray-600">Di section
+        <label class="block text-xs text-[#6C5E54]">Di section
           <select data-bind="decorations.__i__.section" class={selectClass}>
             {SECTION_ORDER.map((key) => <option value={key}>{SECTION_LABELS[key]}</option>)}
           </select>
         </label>
-        <label class="block text-xs text-gray-600">Posisi
+        <label class="block text-xs text-[#6C5E54]">Posisi
           <select data-bind="decorations.__i__.position" class={selectClass}>
             {POSITIONS.map(([value, label]) => <option value={value}>{label}</option>)}
           </select>
         </label>
-        <label class="block text-xs text-gray-600">Ukuran
+        <label class="block text-xs text-[#6C5E54]">Ukuran
           <select data-bind="decorations.__i__.size" class={selectClass}>
             {SIZES.map(([value, label]) => <option value={value}>{label}</option>)}
           </select>
         </label>
       </div>
       <div data-ornament-picker class="hidden">
-        <label class="block text-xs text-gray-600">Pilih SVG
+        <label class="block text-xs text-[#6C5E54]">Pilih SVG
           <select data-bind="decorations.__i__.assetId" data-ornament-select class={selectClass}></select>
         </label>
-        <p class="mt-1 text-xs text-red-600" data-error-for="decorations.__i__.assetId"></p>
+        <p class="mt-1 text-xs text-[#A34E4E]" data-error-for="decorations.__i__.assetId"></p>
       </div>
-      <label class="flex items-center gap-2 text-sm">
-        <input type="checkbox" data-bind="decorations.__i__.flip" /> Cerminkan
+      <label class="flex items-center gap-2 text-xs text-[#493D35]">
+        <input type="checkbox" data-bind="decorations.__i__.flip" class="accent-[#8B7561]" />
+        Cerminkan horizontal
       </label>
     </div>
   </template>

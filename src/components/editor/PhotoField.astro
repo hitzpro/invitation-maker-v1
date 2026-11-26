@@ -2,16 +2,16 @@
 const { path, label } = Astro.props;
 ---
 <div data-photo-field={path} data-label={label}>
-  <p class="text-sm font-medium">{label}</p>
-  <div class="mt-1 flex items-center gap-3">
-    <div class="h-20 w-20 shrink-0 overflow-hidden rounded border bg-gray-100">
+  <p class="text-sm font-medium text-[#493D35]">{label}</p>
+  <div class="mt-2 flex items-center gap-3">
+    <div class="h-16 w-16 shrink-0 overflow-hidden rounded-[8px] border border-[#D8C8B5] bg-[#F5F0E8]">
       <img data-photo-thumb alt="" class="hidden h-full w-full object-cover" />
-      <span data-photo-empty class="grid h-full place-items-center text-xs text-gray-400">Kosong</span>
+      <span data-photo-empty class="grid h-full place-items-center text-[11px] text-[#6C5E54]">Kosong</span>
     </div>
     <div class="flex flex-wrap gap-2">
-      <button type="button" data-photo-pick class="rounded border px-3 py-1.5 text-sm hover:bg-gray-50">Pilih foto</button>
-      <button type="button" data-photo-clear class="hidden rounded border px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">Hapus</button>
+      <button type="button" data-photo-pick class="btn-secondary px-3 py-1.5 text-xs">Pilih Foto</button>
+      <button type="button" data-photo-clear class="btn-danger hidden px-3 py-1.5 text-xs">Hapus</button>
     </div>
   </div>
-  <p class="mt-1 text-sm text-red-600" data-error-for={path}></p>
+  <p class="mt-1 text-xs text-[#A34E4E]" data-error-for={path}></p>
 </div>

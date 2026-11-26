@@ -1,18 +1,37 @@
 ---
-import '../styles/global.css';
+import AuthLayout from '../layouts/AuthLayout.astro';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
 import { hashPassword } from '../lib/password.js';
 import { createSession, setSessionCookie } from '../lib/session.js';
 import { isRegistrationAllowed } from '../lib/settings.js';
+import { isDemoMode } from '../lib/demo.js';
+import { getCreatorBranding } from '../lib/branding.js';
 
 if (Astro.locals.user) return Astro.redirect('/dashboard');
 
-const registrationOpen = await isRegistrationAllowed();
-if (!registrationOpen && Astro.request.method === 'POST') {
+const demoMode = isDemoMode();
+const creator = getCreatorBranding();
+
+if (demoMode && Astro.request.method === 'POST') {
+  return new Response('Pendaftaran dinonaktifkan pada mode demo showcase', { status: 403 });
+}
+
+const registrationOpen = demoMode ? false : await isRegistrationAllowed();
+if (!demoMode && !registrationOpen && Astro.request.method === 'POST') {
   return new Response('Pendaftaran sedang ditutup', { status: 403 });
+}
+
+let isFirstLocalUser = false;
+if (!demoMode && registrationOpen) {
+  try {
+    const [{ value }] = await db.select({ value: count() }).from(users);
+    isFirstLocalUser = Number(value) === 0;
+  } catch {
+    isFirstLocalUser = false;
+  }
 }
 
 const schema = z.object({
@@ -24,7 +43,7 @@ const schema = z.object({
 let errors = {};
 let values = { name: '', email: '' };
 
-if (Astro.request.method === 'POST') {
+if (!demoMode && registrationOpen && Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   const input = {
     name: String(form.get('name') ?? ''),
@@ -40,61 +59,99 @@ if (Astro.request.method === 'POST') {
     }
   } else {
     const { name, email, password } = parsed.data;
-    const [exists] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    const passwordHash = await hashPassword(password);
 
-    if (exists) {
+    const result = await db.transaction(async (tx) => {
+      const [exists] = await tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+      if (exists) return { duplicate: true };
+
+      const [{ value: currentUsers }] = await tx.select({ value: count() }).from(users);
+      const role = Number(currentUsers) === 0 ? 'admin' : 'user';
+
+      const [user] = await tx
+        .insert(users)
+        .values({ name, email, passwordHash, role })
+        .returning({ id: users.id, role: users.role });
+
+      return { user };
+    });
+
+    if (result.duplicate) {
       errors.email = ['Email sudah terdaftar'];
     } else {
-      const [user] = await db
-        .insert(users)
-        .values({ name, email, passwordHash: await hashPassword(password) })
-        .returning({ id: users.id });
-
-      const { token, expiresAt } = await createSession(user.id);
-      setSessionCookie(Astro.cookies, token, expiresAt);
-      return Astro.redirect('/dashboard');
+      const { token, expiresAt } = await createSession(result.user.id);
+      setSessionCookie(Astro.cookies, token, expiresAt, Astro.request);
+      return Astro.redirect(result.user.role === 'admin' ? '/admin' : '/dashboard');
     }
   }
 }
 ---
-<html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Daftar</title>
-  </head>
-  <body class="min-h-screen grid place-items-center bg-gray-50 p-4">
-    {!registrationOpen ? (
-      <div class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-3 text-center">
-        <h1 class="text-xl font-bold">Pendaftaran Ditutup</h1>
-        <p class="text-sm text-gray-600">Registrasi akun baru sedang dinonaktifkan oleh administrator.</p>
-        <a href="/login" class="inline-block text-sm underline">Kembali ke halaman masuk</a>
+<AuthLayout
+  title={demoMode ? 'Mode Demo Showcase' : 'Daftar Akun'}
+  subtitle={demoMode
+    ? 'Pendaftaran akun baru hanya tersedia saat proyek dijalankan secara lokal.'
+    : 'Buat akun baru untuk merancang dan menyebarkan undangan digital Anda.'}
+>
+  {demoMode ? (
+    <div class="space-y-5">
+      <p class="text-sm leading-relaxed text-[#6C5E54]">
+        Pada versi demo online ini, pendaftaran dan penyimpanan akun dinonaktifkan. Untuk membuat undangan Anda sendiri tanpa batasan, silakan clone repositori dan jalankan di komputer atau server pribadi Anda.
+      </p>
+      <div class="flex flex-col gap-3">
+        <a href="/demo" class="btn-primary w-full py-2.5 text-center">
+          Lihat Demo Undangan
+        </a>
+        <a href="/#jalankan-lokal" class="btn-secondary w-full py-2.5 text-center">
+          Panduan Clone &amp; Instalasi Lokal
+        </a>
       </div>
-    ) : (
-      <form method="POST" class="w-full max-w-sm bg-white p-6 rounded-xl shadow space-y-4">
-        <h1 class="text-2xl font-bold">Daftar</h1>
+      <p class="border-t border-[#D8C8B5]/70 pt-4 text-center text-xs text-[#6C5E54]">
+        <a href={creator.repoUrl} target="_blank" rel="noopener noreferrer"
+          class="font-medium text-[#8B7561] underline underline-offset-4 hover:text-[#493D35]">
+          Buka Repositori GitHub &rarr;
+        </a>
+      </p>
+    </div>
+  ) : !registrationOpen ? (
+    <div class="space-y-4 text-center py-2">
+      <h2 class="font-display text-xl text-[#493D35]">Pendaftaran Ditutup</h2>
+      <p class="text-sm text-[#6C5E54]">Registrasi akun baru sedang dinonaktifkan oleh administrator.</p>
+      <a href="/login" class="btn-secondary inline-block">Kembali ke halaman masuk</a>
+    </div>
+  ) : (
+    <form method="POST" class="space-y-5">
+      {isFirstLocalUser && (
+        <p class="rounded-[10px] border border-[#D8C8B5] bg-[#F5F0E8] px-4 py-3 text-xs leading-relaxed text-[#493D35]">
+          Instalasi lokal baru terdeteksi: akun pertama yang Anda daftarkan akan otomatis menjadi <strong>Administrator</strong>.
+        </p>
+      )}
 
-        <div>
-          <label class="block text-sm font-medium" for="name">Nama</label>
-          <input id="name" name="name" value={values.name} required class="mt-1 w-full border rounded px-3 py-2" />
-          {errors.name && <p class="text-sm text-red-600 mt-1">{errors.name[0]}</p>}
-        </div>
+      <div>
+        <label class="block text-sm font-medium text-[#493D35]" for="name">Nama lengkap</label>
+        <input id="name" name="name" value={values.name} required placeholder="Nama Anda"
+          class="input-field mt-1.5" />
+        {errors.name && <p class="mt-1.5 text-xs text-[#A34E4E]">{errors.name[0]}</p>}
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium" for="email">Email</label>
-          <input id="email" name="email" type="email" value={values.email} required class="mt-1 w-full border rounded px-3 py-2" />
-          {errors.email && <p class="text-sm text-red-600 mt-1">{errors.email[0]}</p>}
-        </div>
+      <div>
+        <label class="block text-sm font-medium text-[#493D35]" for="email">Email</label>
+        <input id="email" name="email" type="email" value={values.email} required placeholder="nama@email.com"
+          class="input-field mt-1.5" />
+        {errors.email && <p class="mt-1.5 text-xs text-[#A34E4E]">{errors.email[0]}</p>}
+      </div>
 
-        <div>
-          <label class="block text-sm font-medium" for="password">Password</label>
-          <input id="password" name="password" type="password" required class="mt-1 w-full border rounded px-3 py-2" />
-          {errors.password && <p class="text-sm text-red-600 mt-1">{errors.password[0]}</p>}
-        </div>
+      <div>
+        <label class="block text-sm font-medium text-[#493D35]" for="password">Password</label>
+        <input id="password" name="password" type="password" required placeholder="Minimal 8 karakter"
+          class="input-field mt-1.5" />
+        {errors.password && <p class="mt-1.5 text-xs text-[#A34E4E]">{errors.password[0]}</p>}
+      </div>
 
-        <button class="w-full bg-black text-white rounded py-2">Daftar</button>
-        <p class="text-sm text-center">Sudah punya akun? <a href="/login" class="underline">Masuk</a></p>
-      </form>
-    )}
-  </body>
-</html>
+      <button class="btn-primary w-full py-2.5">Daftar</button>
+
+      <p class="border-t border-[#D8C8B5]/70 pt-4 text-center text-sm text-[#6C5E54]">
+        Sudah punya akun? <a href="/login" class="font-medium text-[#8B7561] underline underline-offset-4 hover:text-[#493D35]">Masuk</a>
+      </p>
+    </form>
+  )}
+</AuthLayout>

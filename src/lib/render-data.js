@@ -7,7 +7,7 @@ import { guestMessages } from '../db/schema.js';
 
 
 const OFFSETS = { 'Asia/Jakarta': '+07:00', 'Asia/Makassar': '+08:00', 'Asia/Jayapura': '+09:00' };
-const DEFAULT_COLOR = '#8b5e3c';
+const DEFAULT_COLOR = '#8b7561';
 
 // Hanya hex 6 digit: mencegah penyisipan CSS lewat atribut style
 export const safeColor = (c) => (/^#[0-9a-fA-F]{6}$/.test(c ?? '') ? c : DEFAULT_COLOR);
@@ -59,7 +59,11 @@ const [content, imageRows, audioRows, svgRows, wishRows] = await Promise.all([
 // Section tampil jika enabled DAN datanya ada
 const HAS_DATA = {
   cover: () => true,
-  couple: (c) => Boolean(c.sections.couple.bride.name && c.sections.couple.groom.name),
+  couple: (c) =>
+    Boolean(
+      (c.sections.couple.bride.name || c.sections.couple.bride.fullName) &&
+      (c.sections.couple.groom.name || c.sections.couple.groom.fullName)
+    ),
   event: (c) => sortedEvents(c).length > 0,
   countdown: (c) => sortedEvents(c).length > 0,
   story: (c) => c.sections.story.items.length > 0,

@@ -3,10 +3,11 @@ const { invitationId } = Astro.props;
 ---
 <form data-upload-form action={`/api/invitations/${invitationId}/assets`} method="POST"
   enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
-  <input type="file" name="file" accept="image/jpeg,image/png" multiple class="text-sm" />
-  <button class="bg-black text-white rounded px-4 py-2 text-sm">Unggah</button>
+  <input type="file" name="file" accept="image/jpeg,image/png" multiple
+    class="text-sm text-[#493D35] file:mr-3 file:rounded-[8px] file:border file:border-[#D8C8B5] file:bg-[#F5F0E8] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[#493D35] hover:file:border-[#8B7561]" />
+  <button class="btn-primary">Unggah</button>
 </form>
-<p data-upload-error class="text-sm text-red-600 mt-2"></p>
+<p data-upload-error class="mt-2 text-sm text-[#A34E4E]"></p>
 
 <script>
   document.querySelectorAll('form[data-upload-form]').forEach((form) => {
@@ -42,7 +43,7 @@ const { invitationId } = Astro.props;
       }
 
       if (errors.length === 0) {
-        location.assign(location.pathname + location.search); // GET baru, bukan kirim ulang POST
+        location.assign(location.pathname + location.search);
         return;
       }
       errorEl.textContent =

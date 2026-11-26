@@ -10,7 +10,7 @@ export function initOrnaments({ store, invitationId, svgs }) {
 
   function syncSelects() {
     listContainer.querySelectorAll('[data-ornament-picker]').forEach((picker) => {
-      const card = picker.closest('.space-y-2');
+      const card = picker.closest('.space-y-2\\.5') || picker.parentElement;
       const kindSelect = card?.querySelector('[data-bind$=".kind"]');
       const svgSelect = picker.querySelector('[data-ornament-select]');
       if (!kindSelect || !svgSelect) return;
@@ -21,7 +21,7 @@ export function initOrnaments({ store, invitationId, svgs }) {
       svgSelect.replaceChildren();
       const empty = document.createElement('option');
       empty.value = '';
-      empty.textContent = svgs.length ? '— Pilih SVG —' : '— Belum ada SVG —';
+      empty.textContent = svgs.length ? 'Pilih SVG' : 'Belum ada SVG';
       svgSelect.append(empty);
 
       for (const s of svgs) {
@@ -51,22 +51,22 @@ export function initOrnaments({ store, invitationId, svgs }) {
     listEl.replaceChildren();
     if (svgs.length === 0) {
       const li = document.createElement('li');
-      li.className = 'text-xs text-gray-500';
+      li.className = 'text-xs text-[#6C5E54]';
       li.textContent = 'Belum ada SVG diunggah.';
       listEl.append(li);
     }
     for (const s of svgs) {
       const li = document.createElement('li');
-      li.className = 'flex items-center justify-between gap-2 rounded border bg-white px-2 py-1 text-xs';
+      li.className = 'flex items-center justify-between gap-2 rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] px-3 py-1.5 text-xs';
 
       const name = document.createElement('span');
-      name.className = 'truncate';
+      name.className = 'truncate text-[#493D35]';
       name.textContent = s.name;
 
       const del = document.createElement('button');
       del.type = 'button';
       del.textContent = 'Hapus';
-      del.className = 'shrink-0 text-red-600 underline';
+      del.className = 'shrink-0 font-medium text-[#A34E4E] underline underline-offset-4';
       del.addEventListener('click', async () => {
         const res = await fetch(`/api/invitations/${invitationId}/assets/${s.id}`, { method: 'DELETE' });
         if (!res.ok) return;
@@ -86,7 +86,7 @@ export function initOrnaments({ store, invitationId, svgs }) {
     uploadInput.value = '';
     if (!file) return;
 
-    msgEl.className = 'text-xs text-gray-600';
+    msgEl.className = 'text-xs text-[#6C5E54]';
     msgEl.textContent = 'Mengunggah…';
     const fd = new FormData();
     fd.append('file', file);
@@ -99,12 +99,11 @@ export function initOrnaments({ store, invitationId, svgs }) {
       renderList();
       syncSelects();
     } catch (err) {
-      msgEl.className = 'text-xs text-red-600';
+      msgEl.className = 'text-xs text-[#A34E4E]';
       msgEl.textContent = err.message;
     }
   });
 
-  // Sinkronkan ulang setiap kali user menambah/menghapus item dekorasi
   new MutationObserver(syncSelects).observe(listContainer, { childList: true });
   renderList();
   syncSelects();

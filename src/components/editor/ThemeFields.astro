@@ -1,47 +1,49 @@
 ---
 const COLORS = [
-  ['Cokelat', '#8b5e3c'],
-  ['Hijau sage', '#5f7a61'],
-  ['Biru dusty', '#4a6785'],
-  ['Rose', '#b5586b'],
-  ['Arang', '#3a3a3a'],
-  ['Emas', '#a8873a'],
+  ['Mocha', '#8b7561'],
+  ['Cokelat Hangat', '#8b5e3c'],
+  ['Hijau Sage', '#58765d'],
+  ['Biru Dusty', '#4a6785'],
+  ['Rosewood', '#9f5262'],
+  ['Charcoal', '#493d35'],
+  ['Emas Antik', '#9a7a38'],
 ];
 
 const PATTERNS = [
   ['none', 'Tanpa pola'],
   ['floral', 'Bunga'],
   ['leaf', 'Daun'],
-  ['kawung', 'Kawung (batik)'],
+  ['kawung', 'Kawung'],
   ['dots', 'Titik'],
   ['waves', 'Gelombang'],
 ];
 ---
 <div class="space-y-6">
   <div>
-    <label for="f-theme-color" class="block text-sm font-medium">Warna utama</label>
-    <div class="mt-1 flex flex-wrap items-center gap-2">
+    <label for="f-theme-color" class="block text-sm font-medium text-[#493D35]">Warna utama undangan</label>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
       <input id="f-theme-color" type="color" data-bind="theme.primaryColor"
-        class="h-9 w-14 cursor-pointer rounded border p-0.5" />
+        class="h-9 w-12 cursor-pointer rounded-[8px] border border-[#D8C8B5] bg-[#FFFFFF] p-0.5" />
       {COLORS.map(([name, value]) => (
         <button type="button" data-color-preset={value} title={name} aria-label={name}
-          class="h-7 w-7 rounded-full border" style={`background:${value}`}></button>
+          class="h-7 w-7 rounded-[6px] border border-[#D8C8B5] transition-transform hover:scale-105"
+          style={`background:${value}`}></button>
       ))}
     </div>
-    <p class="mt-1 text-xs text-gray-500">
-      Dipakai untuk judul, garis, tombol, dan pola. Warna yang terlalu terang ditolak agar teks putih tetap terbaca.
+    <p class="mt-2 text-xs leading-relaxed text-[#6C5E54]">
+      Dipakai untuk judul, aksen garis, tombol, dan pola. Warna terlalu terang ditolak agar teks putih tetap terbaca.
     </p>
-    <p class="mt-1 text-sm text-red-600" data-error-for="theme.primaryColor"></p>
+    <p class="mt-1 text-xs text-[#A34E4E]" data-error-for="theme.primaryColor"></p>
   </div>
 
-  <div class="space-y-2">
-    <p class="text-sm font-medium">Pola latar</p>
-    <div class="flex flex-wrap gap-2">
+  <div class="space-y-3 border-t border-[#D8C8B5] pt-5">
+    <p class="text-sm font-medium text-[#493D35]">Pola latar</p>
+    <div class="grid grid-cols-3 gap-2">
       {PATTERNS.map(([kind, label]) => (
         <button type="button" data-pattern-pick={kind} title={label} aria-label={label}
-          class="h-14 w-14 overflow-hidden rounded border bg-stone-50 p-0.5">
+          class="flex h-14 flex-col items-center justify-center overflow-hidden rounded-[8px] border border-[#D8C8B5] bg-[#F5F0E8]/60 p-1">
           {kind === 'none' ? (
-            <span class="grid h-full place-items-center text-xs text-gray-400">Tanpa</span>
+            <span class="text-xs text-[#6C5E54]">Polos</span>
           ) : (
             <span class="pattern-preview" data-pattern-kind={kind}></span>
           )}
@@ -50,32 +52,34 @@ const PATTERNS = [
     </div>
 
     <div>
-      <label for="f-pattern-opacity" class="block text-xs text-gray-600">Ketebalan pola</label>
+      <label for="f-pattern-opacity" class="block text-xs text-[#6C5E54]">Ketebalan pola</label>
       <input id="f-pattern-opacity" type="range" min="5" max="40" step="1"
-        data-bind="theme.pattern.opacity" data-type="number" class="w-full" />
-      <p class="text-sm text-red-600" data-error-for="theme.pattern.opacity"></p>
+        data-bind="theme.pattern.opacity" data-type="number" class="mt-1 w-full accent-[#8B7561]" />
+      <p class="text-xs text-[#A34E4E]" data-error-for="theme.pattern.opacity"></p>
     </div>
 
-    <label class="flex items-center gap-2 text-sm">
-      <input type="checkbox" data-bind="theme.pattern.all" /> Terapkan ke semua section
+    <label class="flex items-center gap-2 text-sm text-[#493D35]">
+      <input type="checkbox" data-bind="theme.pattern.all" class="accent-[#8B7561]" />
+      Terapkan ke semua section
     </label>
-    <p class="text-xs text-gray-500">
-      Bila dimatikan, pilih section mana saja yang berpola lewat "Gaya section" di tiap section.
-      Warna pola mengikuti warna utama.
+    <p class="text-xs leading-relaxed text-[#6C5E54]">
+      Bila dimatikan, aktifkan pola secara manual melalui &ldquo;Gaya section&rdquo; di tiap bagian.
     </p>
-    <p class="text-sm text-red-600" data-error-for="theme.pattern.kind"></p>
+    <p class="text-xs text-[#A34E4E]" data-error-for="theme.pattern.kind"></p>
   </div>
 
-  <div class="space-y-2">
-    <p class="text-sm font-medium">Animasi</p>
-    <label class="flex items-center gap-2 text-sm">
-      <input type="checkbox" data-bind="theme.animation.enabled" /> Aktifkan animasi fade-in saat digulir
+  <div class="space-y-2.5 border-t border-[#D8C8B5] pt-5">
+    <p class="text-sm font-medium text-[#493D35]">Animasi transisi</p>
+    <label class="flex items-center gap-2 text-sm text-[#493D35]">
+      <input type="checkbox" data-bind="theme.animation.enabled" class="accent-[#8B7561]" />
+      Aktifkan efek fade-in saat digulir
     </label>
-    <label class="flex items-center gap-2 text-sm">
-      <input type="checkbox" data-bind="theme.animation.all" /> Terapkan ke semua section
+    <label class="flex items-center gap-2 text-sm text-[#493D35]">
+      <input type="checkbox" data-bind="theme.animation.all" class="accent-[#8B7561]" />
+      Terapkan ke semua section
     </label>
-    <p class="text-xs text-gray-500">
-      Bawaan: mati. Animasi otomatis tidak dijalankan untuk pengunjung yang memilih "kurangi gerakan" di perangkatnya.
+    <p class="text-xs leading-relaxed text-[#6C5E54]">
+      Animasi otomatis dinonaktifkan bagi pengunjung yang mengaktifkan opsi pengurangan gerak di perangkatnya.
     </p>
   </div>
 </div>
