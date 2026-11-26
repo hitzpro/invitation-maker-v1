@@ -1,6 +1,5 @@
 import { and, asc, eq, like, ne } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { invitations, invitationContents } from '../db/schema.js';
 import { generateUniqueSlug } from './slug.js';
 import { invitations, invitationContents, invitationAssets } from '../db/schema.js';
 import { removeFiles, copyUploadFile } from './upload.js';
